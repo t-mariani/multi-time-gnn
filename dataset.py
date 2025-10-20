@@ -1,6 +1,10 @@
 from typing import Literal
+from einops import rearrange
 import torch
 import numpy as np
+from utils import get_logger
+
+log = get_logger()
 
 available_datasets = ["electricity", "traffic", "solar", "exchange"]
 
@@ -30,12 +34,14 @@ def read_dataset(
     )  # Return size : TxN # TODO return tensor instead to speed up get_batch
 
 
-def get_batch(batch_size, dataset, t):
+def get_batch(batch_size, dataset, t, y_t=1):
     bigT, N = dataset.shape
-    idx = torch.randint(0, bigT, (batch_size,))
-    x = torch.Tensor(np.array([dataset[i : i + t, :] for i in idx]))
-    y = torch.Tensor(np.array([dataset[i + t, :] for i in idx])).reshape(
-        (batch_size, 1, N)
+    idx = torch.randint(0, bigT - t - y_t, (batch_size,))
+    x = rearrange(
+        torch.Tensor(np.array([dataset[i : i + t, :] for i in idx])), "b t n -> b 1 n t"
     )
-
-    return x, y  # Return : BxTxN, Bx1xN
+    y = rearrange(
+        torch.Tensor(np.array([dataset[i + t : i + t + y_t, :] for i in idx])),
+        "b t n -> b 1 n t",
+    )
+    return x, y  # Return : Bx1xNxT, Bx1xNxy_t
