@@ -1,0 +1,13 @@
+# Hyperparemeter 
+m : 1 # Number of graph convolution module AND temporal conv module 
+alpha : 1 # saturation parameter in graph layer
+k : 2 # Step in mix hop = depth of propagation
+beta : 1 # ratio of retained info from root node  
+embedding_dim : 10 
+learning_rate : 1e-3
+weight_decay : 1e-5 # Regularisation L2 
+
+# Training 
+batch_size : 8
+n_epoch : 10
+log_each : 10
