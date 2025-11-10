@@ -2,7 +2,7 @@
 authors = ["Tom Mariani <tom.mariani.dev@gmail.com>"]
 channels = ["conda-forge"]
 name = "multi-time-gnn"
-platforms = ["osx-arm64"]
+platforms = ["osx-arm64", "linux-64"]
 version = "0.1.0"
 
 [tasks]
