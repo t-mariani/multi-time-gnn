@@ -13,18 +13,30 @@ class GraphLearningLayer(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.node_emb = nn.Embedding(config.N, config.embedding_dim)
-        self.theta1 = nn.Parameter(torch.randn(config.embedding_dim, config.N))
-        self.theta2 = nn.Parameter(torch.randn(config.embedding_dim, config.N))
+        k = 1  # could be another hyperparameter
+        # If node_emb is already known with k features, change k accordingly and change node_emb_emitter and receiver
+        self.node_emb_emitter = nn.Embedding(config.N, k)
+        self.node_emb_receiver = nn.Embedding(config.N, k)
+        self.theta1 = nn.Parameter(torch.randn(k, config.embedding_dim))
+        self.theta2 = nn.Parameter(torch.randn(k, config.embedding_dim))
 
     def forward(self, v=None):
+        """
+        v: list of nodes (index) to consider, if None all nodes are considered
+        """
         if v is None:
-            embed = self.node_emb(torch.arange(0, self.config.N, dtype=torch.int))
+            embed_emitter = self.node_emb_emitter(
+                torch.arange(0, self.config.N, dtype=torch.int)
+            )
+            embed_receiver = self.node_emb_receiver(
+                torch.arange(0, self.config.N, dtype=torch.int)
+            )
         else:
-            embed = self.node_emb[v]
+            embed_emitter = self.node_emb_emitter[v]
+            embed_receiver = self.node_emb_receiver[v]
 
-        M1 = tanh(self.config.alpha * embed @ self.theta1)
-        M2 = tanh(self.config.alpha * embed @ self.theta2)
+        M1 = tanh(self.config.alpha * embed_emitter @ self.theta1)
+        M2 = tanh(self.config.alpha * embed_receiver @ self.theta2)
         A = relu(tanh(self.config.alpha * (M1 @ M2.T - M1.T @ M2)))
 
         log.debug(f"Graph : {A.shape}")
