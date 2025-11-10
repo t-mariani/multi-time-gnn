@@ -35,16 +35,18 @@ class GraphLearningLayer(nn.Module):
             embed_emitter = self.node_emb_emitter[v]
             embed_receiver = self.node_emb_receiver[v]
 
-        M1 = tanh(self.config.alpha * embed_emitter @ self.theta1)
-        M2 = tanh(self.config.alpha * embed_receiver @ self.theta2)
-        A = relu(tanh(self.config.alpha * (M1 @ M2.T - M1.T @ M2)))
+        M1 = tanh(self.config.alpha * embed_emitter @ self.theta1)  # N * embedding_dim
+        M2 = tanh(self.config.alpha * embed_receiver @ self.theta2)  # N * embedding_dim
+        A = relu(tanh(self.config.alpha * (M1 @ M2.T - M1.T @ M2)))   # N * N
 
         log.debug(f"Graph : {A.shape}")
         log.debug(f"Graph val : {A}")
 
         # Improve sparsity of A
-        # for i in range(1): # A.shape[0]):
-        #     torch.
+        indices_to_keep = torch.topk(A, self.config.k_sparsity, dim=1).indices
+        mask = torch.zeros_like(A, dtype=torch.bool)
+        mask.scatter_(1, indices_to_keep, True)
+        A = A * mask
         return A
 
 
