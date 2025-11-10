@@ -9,13 +9,13 @@ beta : 0.1 # ratio of retained info from root node
 embedding_dim : 64 
 learning_rate : 0.00001
 weight_decay : 0.00001 # Regularisation L2 
-residual_channels: 16 # Channels following the conv, divisible by 4
+residual_channels: 32 # Channels following the conv, divisible by 4
 timepoints_input: 16
 
 # Training 
-batch_size : 32
+batch_size : 64
 n_epoch : 10000
 
 # Logging 
-log_each : 20
+log_each : 5
 log_level : INFO

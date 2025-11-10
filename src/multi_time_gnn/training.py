@@ -1,10 +1,10 @@
-from dataset import get_batch
-from utils import get_logger
+from multi_time_gnn.dataset import get_batch
+from multi_time_gnn.utils import get_logger
 
 log = get_logger()
 
 
-def train_lopp(model, dataset, optimizer, config):
+def train_loop(model, dataset, optimizer, config):
     model.train()
     log_loss = []
     # nodes = [1:N] TODO implement when subgraphs

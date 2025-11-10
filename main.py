@@ -1,11 +1,10 @@
 import torch
-from utils import get_logger
 from torchinfo import summary
 
-from model import NextStepModel
-from dataset import read_dataset
-from training import train_lopp
-from utils import load_config
+from multi_time_gnn.model import NextStepModel
+from multi_time_gnn.dataset import normalize, read_dataset
+from multi_time_gnn.training import train_loop
+from multi_time_gnn.utils import load_config, get_logger
 
 
 if __name__ == "__main__":
@@ -15,6 +14,7 @@ if __name__ == "__main__":
     log.debug(config)
 
     dataset = read_dataset(config.dataset_name)
+    dataset = normalize(dataset)
     T, N = dataset.shape
     log.info(f"Dataset '{config.dataset_name}' shape : {T, N}")
     config.N = N
@@ -32,4 +32,4 @@ if __name__ == "__main__":
         weight_decay=config.weight_decay,
     )
 
-    train_lopp(model, dataset, optimizer, config)
+    train_loop(model, dataset, optimizer, config)

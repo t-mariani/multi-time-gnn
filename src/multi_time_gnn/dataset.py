@@ -2,7 +2,7 @@ from typing import Literal
 from einops import rearrange
 import torch
 import numpy as np
-from utils import get_logger
+from multi_time_gnn.utils import get_logger
 
 log = get_logger()
 
@@ -45,3 +45,9 @@ def get_batch(batch_size, dataset, t, y_t=1):
         "b t n -> b 1 n t",
     )
     return x, y  # Return : Bx1xNxT, Bx1xNxy_t
+
+
+def normalize(data):
+    print(np.max(np.abs(data), axis=1).shape)
+    res = data / np.max(np.abs(data), axis=0, keepdims=True, initial=1e-7)
+    return res

@@ -3,7 +3,8 @@ import torch
 from torch import nn
 from torch.nn.functional import tanh, relu, sigmoid
 from torch.nn import MSELoss
-from utils import get_logger
+
+from multi_time_gnn.utils import get_logger
 
 log = get_logger()
 
@@ -21,6 +22,7 @@ class GraphLearningLayer(nn.Module):
             embed = self.node_emb(torch.arange(0, self.config.N, dtype=torch.int))
         else:
             embed = self.node_emb[v]
+
         M1 = tanh(self.config.alpha * embed @ self.theta1)
         M2 = tanh(self.config.alpha * embed @ self.theta2)
         A = relu(tanh(self.config.alpha * (M1 @ M2.T - M1.T @ M2)))
@@ -151,6 +153,14 @@ class NextStepModel(nn.Module):
         self.graphCM = nn.ModuleList(
             [GraphConvolutionModule(config) for _ in range(config.m)]
         )
+        self.layer_norm = nn.ModuleList(
+            [
+                nn.LayerNorm(
+                    (config.residual_channels, config.N, config.timepoints_input)
+                )
+                for _ in range(config.m)
+            ]
+        )
         self.output_module = OutputModule(config)
 
         self.loss = MSELoss()
@@ -170,6 +180,7 @@ class NextStepModel(nn.Module):
             x2 = self.graphCM[i](x1, graph)  # BxCxTxN
             log.debug(f"x shape graphCM: {x2.shape}")
             x = x2 + residual
+            x = self.layer_norm[i](x)
 
         next_point = self.output_module(skip + x)
         log.debug(f"Next point : {next_point}")

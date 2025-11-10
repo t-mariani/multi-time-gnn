@@ -14,3 +14,6 @@ torchinfo = ">=1.8.0,<2"
 einops = ">=0.8.1,<0.9"
 pyaml = ">=25.7.0,<26"
 python-box = ">=7.3.2,<8"
+
+[pypi-dependencies]
+multi_time_gnn = { path = ".", editable = true}
