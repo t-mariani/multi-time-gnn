@@ -43,10 +43,11 @@ class GraphLearningLayer(nn.Module):
         log.debug(f"Graph val : {A}")
 
         # Improve sparsity of A
-        indices_to_keep = torch.topk(A, self.config.k_sparsity, dim=1).indices
-        mask = torch.zeros_like(A, dtype=torch.bool)
-        mask.scatter_(1, indices_to_keep, True)
-        A = A * mask
+        if self.config.k_sparsity:
+            indices_to_keep = torch.topk(A, self.config.k_sparsity, dim=1).indices
+            mask = torch.zeros_like(A, dtype=torch.bool)
+            mask.scatter_(1, indices_to_keep, True)
+            A = A * mask
         return A
 
 
