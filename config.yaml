@@ -3,19 +3,21 @@ dataset_name : solar
 
 # Hyperparemeter 
 m : 4 # Number of graph convolution module AND temporal conv module 
-alpha : 0.1 # saturation parameter in graph layer
-k : 4 # Step in mix hop = depth of propagation
-beta : 0.1 # ratio of retained info from root node  
-embedding_dim : 64 
-learning_rate : 0.00001
-weight_decay : 0.00001 # Regularisation L2 
+alpha : 3 # saturation parameter in graph layer
+k : 2 # Step in mix hop = depth of propagation
+beta : 0.5 # ratio of retained info from root node  
+k_sparsity: 20 # Number of edges to keep per node in graph sparsification
+embedding_dim : 40 
+learning_rate : 0.001
+weight_decay : 0.0001 # Regularisation L2 
 residual_channels: 32 # Channels following the conv, divisible by 4
-timepoints_input: 16
+timepoints_input: 168
 
 # Training 
-batch_size : 64
-n_epoch : 10000
+batch_size : 2
+n_epoch : 50
+train_ratio : 0.9
 
 # Logging 
-log_each : 5
+log_each : 2
 log_level : INFO # DEBUG, INFO, WARNING, ERROR

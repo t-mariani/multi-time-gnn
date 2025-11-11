@@ -35,12 +35,15 @@ class GraphLearningLayer(nn.Module):
             embed_emitter = self.node_emb_emitter[v]
             embed_receiver = self.node_emb_receiver[v]
 
+        log.debug(f"Embed emitter : {embed_emitter.shape}")
+        log.debug(f"Embed receiver : {embed_receiver.shape}")
         M1 = tanh(self.config.alpha * embed_emitter @ self.theta1)  # N * embedding_dim
         M2 = tanh(self.config.alpha * embed_receiver @ self.theta2)  # N * embedding_dim
-        A = relu(tanh(self.config.alpha * (M1 @ M2.T - M1.T @ M2)))   # N * N
+        log.debug(f"M1 : {M1.shape}")
+        log.debug(f"M2 : {M2.shape}")
+        A = relu(tanh(self.config.alpha * (M1 @ M2.T - M2 @ M1.T)))  # N * N
 
         log.debug(f"Graph : {A.shape}")
-        log.debug(f"Graph val : {A}")
 
         # Improve sparsity of A
         if self.config.k_sparsity:
@@ -143,7 +146,9 @@ class OutputModule(nn.Module):
         self.end_conv_1 = nn.Conv2d(
             in_channels=config.residual_channels, out_channels=1, kernel_size=1
         )
-        self.end_conv_2 = nn.Conv2d(in_channels=1, out_channels=1, kernel_size=1)
+        self.end_conv_2 = nn.Conv2d(
+            in_channels=1, out_channels=1, kernel_size=(1, config.timepoints_input)
+        )
 
     def forward(self, x):
         log.debug(f"output x shape : {x.shape}")
@@ -198,10 +203,10 @@ class NextStepModel(nn.Module):
             x = self.layer_norm[i](x)
 
         next_point = self.output_module(skip + x)
-        log.debug(f"Next point : {next_point}")
+        log.debug(f"Next point : {next_point.shape}")
         if y is None:
             return next_point, None
 
-        log.debug(f"Compared y : {y}")
+        log.debug(f"Compared y : {y.shape}")
         loss = self.loss(next_point, y)
         return next_point, loss

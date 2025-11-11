@@ -6,6 +6,10 @@ platforms = ["osx-arm64", "linux-64"]
 version = "0.1.0"
 
 [tasks]
+train = "python main.py"
+predict = "python prediction.py"
+p = [{ task = "predict" }]
+t = [{ task = "train" }]
 
 [dependencies]
 pytorch = ">=2.8.0,<3"
@@ -14,6 +18,8 @@ torchinfo = ">=1.8.0,<2"
 einops = ">=0.8.1,<0.9"
 pyaml = ">=25.7.0,<26"
 python-box = ">=7.3.2,<8"
+tqdm = ">=4.67.1,<5"
+matplotlib = ">=3.10.7,<4"
 
 [pypi-dependencies]
 multi_time_gnn = { path = ".", editable = true}

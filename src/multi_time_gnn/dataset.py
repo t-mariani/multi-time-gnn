@@ -34,9 +34,25 @@ def read_dataset(
     )  # Return size : TxN # TODO return tensor instead to speed up get_batch
 
 
-def get_batch(batch_size, dataset, t, y_t=1):
+def get_batch(
+    batch_size: int, dataset: np.ndarray, t, y_t=1, index=None
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    batch_size : int
+    dataset : array size (bigT,N)
+    t : int, input timepoints
+    y_t : int, output timepoints
+    index : list of int, optional, timepoints indices for the batch
+
+    Returns :
+    x : torch.Tensor of size (batch_size,1,N,t)
+    y : torch.Tensor of size (batch_size,1,N,y_t)
+    """
     bigT, N = dataset.shape
-    idx = torch.randint(0, bigT - t - y_t, (batch_size,))
+    if index is not None:
+        idx = index
+    else:
+        idx = torch.randint(0, bigT - t - y_t, (batch_size,))
     x = rearrange(
         torch.Tensor(np.array([dataset[i : i + t, :] for i in idx])), "b t n -> b 1 n t"
     )
@@ -48,6 +64,6 @@ def get_batch(batch_size, dataset, t, y_t=1):
 
 
 def normalize(data):
-    print(np.max(np.abs(data), axis=1).shape)
+    print(np.max(np.abs(data), axis=0).shape)
     res = data / np.max(np.abs(data), axis=0, keepdims=True, initial=1e-7)
     return res
