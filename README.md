@@ -25,13 +25,21 @@ How to deal with the dimensions:
 - dimension of the channels is changing
 
 ### TO DO:
-How to deal with the dimensions:
-- dimension of the channels is changing? Reduction ? Or it increases
+- [x] How to deal with the dimensions: dimension of the channels is changing? Reduction ? Or it increases
+-> set inside config 
+- [x] implementation convolution skip connections
+- [x] dropout after time module
+- [x] regarder output module -> cf A.3 Experimental Setup
+- [ ] Revoir les MLP layer -> doit etre selon les channels/features et non les capteurs
+- [ ] Normalisation des dataset : scale par capteur ? 
+- [ ] Layernorm : pourquoi autant de paramètres ? 
+- [ ] Training : create real epoch -> Dataloader
+- [ ] Avoir les mêmes métriques : horizon 3, 6, 12, 24 
+- [ ] créer train, val, test set pour logger
 
-- implementation convolution skip connections
-- dropout after time module
-- output module
-
+Bonus:
+- [ ] Faire le training avec une sous partie du graphe 
+- [ ] Utiliser hydra 
 
 
 ### Constant names

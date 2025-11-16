@@ -10,15 +10,21 @@ log = get_logger()
 
 
 class GraphLearningLayer(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, known_captor_features=False):
         super().__init__()
         self.config = config
-        k = 1  # could be another hyperparameter
         # If node_emb is already known with k features, change k accordingly and change node_emb_emitter and receiver
-        self.node_emb_emitter = nn.Embedding(config.N, k)
-        self.node_emb_receiver = nn.Embedding(config.N, k)
-        self.theta1 = nn.Parameter(torch.randn(config.N, config.embedding_dim))
-        self.theta2 = nn.Parameter(torch.randn(config.N, config.embedding_dim))
+        self.known_captor_features = known_captor_features
+        if known_captor_features:
+            # Replace node_emb with your own data
+            k = 1
+            self.node_emb_emitter = nn.Embedding(config.N, k)
+            self.node_emb_receiver = nn.Embedding(config.N, k)
+            self.theta1 = nn.Parameter(torch.randn(k, config.embedding_dim))
+            self.theta2 = nn.Parameter(torch.randn(k, config.embedding_dim))
+        else:
+            self.node_emb_emitter = nn.Embedding(config.N, config.embedding_dim)
+            self.node_emb_receiver = nn.Embedding(config.N, config.embedding_dim)
 
     def forward(self, v=None):
         """
@@ -37,8 +43,18 @@ class GraphLearningLayer(nn.Module):
 
         log.debug(f"Embed emitter : {embed_emitter.shape}")
         log.debug(f"Embed receiver : {embed_receiver.shape}")
-        M1 = tanh(self.config.alpha * embed_emitter @ self.theta1)  # N * embedding_dim
-        M2 = tanh(self.config.alpha * embed_receiver @ self.theta2)  # N * embedding_dim
+        if self.known_captor_features:
+            # We need to adjust the features with theta1 and 2
+            M1 = tanh(
+                self.config.alpha * embed_emitter @ self.theta1
+            )  # N * embedding_dim
+            M2 = tanh(
+                self.config.alpha * embed_receiver @ self.theta2
+            )  # N * embedding_dim
+        else:
+            M1 = tanh(self.config.alpha * embed_emitter)  # N * embedding_dim
+            M2 = tanh(self.config.alpha * embed_receiver)  # N * embedding_dim
+
         log.debug(f"M1 : {M1.shape}")
         log.debug(f"M2 : {M2.shape}")
         A = relu(tanh(self.config.alpha * (M1 @ M2.T - M2 @ M1.T)))  # N * N
@@ -65,7 +81,7 @@ class MixHopPropagationLayer(nn.Module):
     def forward(self, Hin, A):
         """
         B: batch dimension
-        C: b of channels  ## what is a channel, not clear 
+        C: b of channels  ## what is a channel, not clear
         N: nb captors
         T: length of the time series
         """
@@ -73,7 +89,6 @@ class MixHopPropagationLayer(nn.Module):
         graph = A  # NxN
         # graph = torch.detach(A)  # We need to compute the gradients during the optimisation
         # I think that we need to not detach A from the graph otherwise we will never learn the graph and just have a random one
-
 
         ## In order to speed up the compute of Dmoins1, we can parallelise it with torch:
         # Dmoins1 = torch.diag(
@@ -89,16 +104,20 @@ class MixHopPropagationLayer(nn.Module):
         Hprev = Hin
         Hout = 0
         for i in range(self.config.k):
-            graph_times_hprev = torch.einsum("n m, bcnt -> b c m t", Atilde, Hprev)  # BxCxNxT
+            graph_times_hprev = torch.einsum(
+                "n m, bcnt -> b c m t", Atilde, Hprev
+            )  # BxCxNxT
             # Here n and m are the same but in order to use einsum we have to give different names
             log.debug(f"graph_times_hp shape :{graph_times_hprev.shape}")
-            Hprev = self.config.beta * Hin + (1 - self.config.beta) * graph_times_hprev  # BxCxNxT
+            Hprev = (
+                self.config.beta * Hin + (1 - self.config.beta) * graph_times_hprev
+            )  # BxCxNxT
             log.debug(f"hprev shape :{Hprev.shape}")
             Hout += rearrange(
                 self.mlps[i](rearrange(Hprev, "b c n t -> b c t n")),
                 "b c t n -> b c n t",
             )
-        return Hout # BxCxNxT
+        return Hout  # BxCxNxT
 
 
 class GraphConvolutionModule(nn.Module):
@@ -124,7 +143,7 @@ class DilatedInceptionLayer(nn.Module):
                     out_channel,
                     kernel_size=(1, size),
                     dilation=(1, d),
-                    #padding=(0, size // 2),
+                    # padding=(0, size // 2),
                 )
             )
         self.convs = nn.ModuleList(self.convs)
@@ -133,7 +152,7 @@ class DilatedInceptionLayer(nn.Module):
         log.debug(f"shape x dilated : {x.shape}")
         res = []
         for conv in self.convs:
-            res_conv = conv(x) # BxC//4xNxT'
+            res_conv = conv(x)  # BxC//4xNxT'
             res.append(res_conv)
         min_t_size = res[-1].shape[3]
         log.debug(f"min_size_t: {min_t_size}, res_conv_shape: {res_conv.shape}")
@@ -156,10 +175,15 @@ class OutputModule(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.end_conv_1 = nn.Conv2d(
-            in_channels=config.residual_channels, out_channels=1, kernel_size=1
+            in_channels=config.skip_layer_channels,
+            out_channels=config.intermediate_output_channels,
+            kernel_size=1,
         )
+        # Change out_channels for multistep prediction
         self.end_conv_2 = nn.Conv2d(
-            in_channels=1, out_channels=1, kernel_size=(1, config.timepoints_input)
+            in_channels=config.intermediate_output_channels,
+            out_channels=1,
+            kernel_size=1,
         )
 
     def forward(self, x):
@@ -177,7 +201,9 @@ class NextStepModel(nn.Module):
         self.config = config
         # C = config.residual_channels
         self.first_conv = nn.Conv2d(1, self.config.residual_channels, 1)
-        self.first_skip = nn.Conv2d(1, self.config.residual_channels, 1)
+        self.first_skip = nn.Conv2d(
+            1, self.config.residual_channels, (1, config.timepoints_input)
+        )
         self.graph_learn = GraphLearningLayer(config)
         self.timeCM = nn.ModuleList(
             [TimeConvolutionModule(config, d=2**i) for i in range(config.m)]
@@ -185,13 +211,33 @@ class NextStepModel(nn.Module):
         self.graphCM = nn.ModuleList(
             [GraphConvolutionModule(config) for _ in range(config.m)]
         )
+        self.dropouts = nn.ModuleList(
+            [nn.Dropout(self.config.p_dropout) for _ in range(config.m)]
+        )
+        # Here Li is the number of timepoints after the timeCM[i]
+        # In fact, with dilation and convolution of 7
+        list_Li = [
+            config.timepoints_input - sum(6 * 2**j for j in range(i + 1))
+            for i in range(config.m)
+        ]
+        log.debug(f"List Li (number of timepoints after each block) : {list_Li}")
         self.layer_norm = nn.ModuleList(
+            [nn.LayerNorm((config.residual_channels, config.N, Li)) for Li in list_Li]
+        )
+        self.skip_layer = nn.ModuleList(
             [
-                nn.LayerNorm(
-                    (config.residual_channels, config.N, config.timepoints_input)
+                nn.Conv2d(
+                    self.config.residual_channels,
+                    self.config.skip_layer_channels,
+                    (1, Li),
                 )
-                for _ in range(config.m)
+                for Li in list_Li
             ]
+        )
+        self.last_skip = nn.Conv2d(
+            self.config.residual_channels,
+            self.config.skip_layer_channels,
+            (1, list_Li[-1]),
         )
         self.output_module = OutputModule(config)
 
@@ -200,21 +246,29 @@ class NextStepModel(nn.Module):
     def forward(self, input, y=None, v=None):
         graph = self.graph_learn(v)  # NxN
         log.debug(f"graph shape: {graph.shape}")
-        x = self.first_conv(input)  # BxCxTxN
+        x = self.first_conv(input)  # BxCxNxT
         log.debug(f"x shape first conv: {x.shape}")
-        skip = self.first_skip(input)  # BxCxTxN
-        log.debug(f"x shape first skip: {x.shape}")
+        skip = self.first_skip(input)  # BxCxNx1
+        log.debug(f"x shape first skip: {skip.shape}")
         for i in range(self.config.m):
             residual = x
-            x1 = self.timeCM[i](x)  # BxCxT'xN  # may reduce in T due to convolution
-            log.debug(f"x shape timeCM: {x1.shape}")
-            x2 = self.graphCM[i](x1, graph)  # BxCxTxN
-            log.debug(f"x shape graphCM: {x2.shape}")
-            x2 = self.layer_norm[i](x2)
-            x = x2 + residual
-            skip += x1  # are we sure we need to add them and not to concatenate them?
+            x1 = self.timeCM[i](x)  # BxCxNxT'
+            log.debug(f"x shape timeCM, block {i}: {x1.shape}")
+            skip += self.skip_layer[i](x1)  # BxCxNx1
+            x1 = self.dropouts[i](x1)
 
-        next_point = self.output_module(skip + x)
+            x2 = self.graphCM[i](x1, graph)  # BxCxNxT'
+            log.debug(f"x shape graphCM, block {i}: {x2.shape}")
+            x2 = self.layer_norm[i](x2)  # BxCxNxT'
+
+            x = (
+                x2 + residual[:, :, :, -x2.size(3) :]
+            )  # truncate residual to match T and T'
+
+        x = self.last_skip(x)  # B,C,N,1
+        log.debug(f"Skip {skip.shape}")
+        log.debug(f"Last Skip {x.shape}")
+        next_point = self.output_module(skip + x)  # B,1,N,1
         log.debug(f"Next point : {next_point.shape}")
         if y is None:
             return next_point, None

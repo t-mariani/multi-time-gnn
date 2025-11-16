@@ -5,16 +5,19 @@ dataset_name : solar
 m : 4 # Number of graph convolution module AND temporal conv module 
 alpha : 3 # saturation parameter in graph layer
 k : 2 # Step in mix hop = depth of propagation
-beta : 0.5 # ratio of retained info from root node  
+beta : 0.05 # ratio of retained info from root node  
 k_sparsity: 20 # Number of edges to keep per node in graph sparsification
-embedding_dim : 40 
+p_dropout: 0.3 # Dropout after time convolution module
+embedding_dim : 40 # Dimension of captors embeddings for the graph computation
 learning_rate : 0.001
 weight_decay : 0.0001 # Regularisation L2 
-residual_channels: 32 # Channels following the conv, divisible by 4
+residual_channels: 16 # Channels for the main loop, define time convolution module, divisible by 4
+skip_layer_channels: 32 # before output module, number of channels of each block output 
+intermediate_output_channels: 64 # dimension of last conv layer before projecting to horizon  
 timepoints_input: 168
 
 # Training 
-batch_size : 2
+batch_size : 16
 n_epoch : 50
 train_ratio : 0.9
 
