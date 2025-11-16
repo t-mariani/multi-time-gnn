@@ -17,8 +17,8 @@ class GraphLearningLayer(nn.Module):
         # If node_emb is already known with k features, change k accordingly and change node_emb_emitter and receiver
         self.node_emb_emitter = nn.Embedding(config.N, k)
         self.node_emb_receiver = nn.Embedding(config.N, k)
-        self.theta1 = nn.Parameter(torch.randn(k, config.embedding_dim))
-        self.theta2 = nn.Parameter(torch.randn(k, config.embedding_dim))
+        self.theta1 = nn.Parameter(torch.randn(config.N, config.embedding_dim))
+        self.theta2 = nn.Parameter(torch.randn(config.N, config.embedding_dim))
 
     def forward(self, v=None):
         """
@@ -63,29 +63,42 @@ class MixHopPropagationLayer(nn.Module):
         )
 
     def forward(self, Hin, A):
+        """
+        B: batch dimension
+        C: b of channels  ## what is a channel, not clear 
+        N: nb captors
+        T: length of the time series
+        """
         # Hin : BxCxNxT
-        graph = torch.detach(A)
-        Dmoins1 = torch.diag(
-            torch.tensor(
-                [1 / (1 + torch.sum((graph[i, :]))) for i in range(self.config.N)]
-            )
-        )
+        graph = A  # NxN
+        # graph = torch.detach(A)  # We need to compute the gradients during the optimisation
+        # I think that we need to not detach A from the graph otherwise we will never learn the graph and just have a random one
+
+
+        ## In order to speed up the compute of Dmoins1, we can parallelise it with torch:
+        # Dmoins1 = torch.diag(
+        #     torch.tensor(
+        #         [1 / (1 + torch.sum((graph[i, :]))) for i in range(self.config.N)]
+        #     )
+        # )
+        row_sums = torch.sum(graph, dim=1)
+        Dmoins1 = torch.diag(1 / (1 + row_sums))  # NxN
         log.debug(Dmoins1.shape)
-        Atilde = Dmoins1 @ (A + torch.eye(self.config.N))
+        Atilde = Dmoins1 @ (A + torch.eye(self.config.N))  # NxN
 
         Hprev = Hin
         Hout = 0
         for i in range(self.config.k):
-            graph_times_hprev = torch.einsum("n m, bcnt -> b c m t", Atilde, Hprev)
+            graph_times_hprev = torch.einsum("n m, bcnt -> b c m t", Atilde, Hprev)  # BxCxNxT
+            # Here n and m are the same but in order to use einsum we have to give different names
             log.debug(f"graph_times_hp shape :{graph_times_hprev.shape}")
-            Hprev = self.config.beta * Hin + (1 - self.config.beta) * graph_times_hprev
+            Hprev = self.config.beta * Hin + (1 - self.config.beta) * graph_times_hprev  # BxCxNxT
             log.debug(f"hprev shape :{Hprev.shape}")
             Hout += rearrange(
                 self.mlps[i](rearrange(Hprev, "b c n t -> b c t n")),
                 "b c t n -> b c n t",
             )
-
-        return Hout
+        return Hout # BxCxNxT
 
 
 class GraphConvolutionModule(nn.Module):
@@ -102,7 +115,7 @@ class DilatedInceptionLayer(nn.Module):
     def __init__(self, config, d):
         super().__init__()
         out_channel = config.residual_channels // 4
-        conv_size = [3, 3, 5, 7]
+        conv_size = [2, 3, 5, 7]
         self.convs = []
         for size in conv_size:
             self.convs.append(
@@ -110,8 +123,8 @@ class DilatedInceptionLayer(nn.Module):
                     config.residual_channels,
                     out_channel,
                     kernel_size=(1, size),
-                    stride=(1, d),
-                    padding=(0, size // 2),
+                    dilation=(1, d),
+                    #padding=(0, size // 2),
                 )
             )
         self.convs = nn.ModuleList(self.convs)
@@ -119,15 +132,14 @@ class DilatedInceptionLayer(nn.Module):
     def forward(self, x):
         log.debug(f"shape x dilated : {x.shape}")
         res = []
-        min_t_size = x.shape[2]
         for conv in self.convs:
-            res_conv = conv(x)
+            res_conv = conv(x) # BxC//4xNxT'
             res.append(res_conv)
-            min_t_size = min(min_t_size, res_conv.shape[3])  # retrieve T
-            log.debug(f"min_size_t: {min_t_size}, res_conv_shape: {res_conv.shape}")
+        min_t_size = res[-1].shape[3]
+        log.debug(f"min_size_t: {min_t_size}, res_conv_shape: {res_conv.shape}")
         # Truncate to match size along T
-        # res = [xt[:, :, :, :min_t_size] for xt in res]
-        return torch.cat(res, dim=1)  # along C
+        res = [xt[:, :, :, -min_t_size:] for xt in res]
+        return torch.cat(res, dim=1)  # along C # BxCxNxT_4'
 
 
 class TimeConvolutionModule(nn.Module):
@@ -168,7 +180,7 @@ class NextStepModel(nn.Module):
         self.first_skip = nn.Conv2d(1, self.config.residual_channels, 1)
         self.graph_learn = GraphLearningLayer(config)
         self.timeCM = nn.ModuleList(
-            [TimeConvolutionModule(config, 1) for i in range(config.m)]
+            [TimeConvolutionModule(config, d=2**i) for i in range(config.m)]
         )
         self.graphCM = nn.ModuleList(
             [GraphConvolutionModule(config) for _ in range(config.m)]
@@ -192,15 +204,15 @@ class NextStepModel(nn.Module):
         log.debug(f"x shape first conv: {x.shape}")
         skip = self.first_skip(input)  # BxCxTxN
         log.debug(f"x shape first skip: {x.shape}")
-        residual = x
         for i in range(self.config.m):
+            residual = x
             x1 = self.timeCM[i](x)  # BxCxT'xN  # may reduce in T due to convolution
             log.debug(f"x shape timeCM: {x1.shape}")
-            skip += x1
             x2 = self.graphCM[i](x1, graph)  # BxCxTxN
             log.debug(f"x shape graphCM: {x2.shape}")
+            x2 = self.layer_norm[i](x2)
             x = x2 + residual
-            x = self.layer_norm[i](x)
+            skip += x1  # are we sure we need to add them and not to concatenate them?
 
         next_point = self.output_module(skip + x)
         log.debug(f"Next point : {next_point.shape}")
