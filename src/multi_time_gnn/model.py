@@ -202,7 +202,7 @@ class NextStepModel(nn.Module):
         # C = config.residual_channels
         self.first_conv = nn.Conv2d(1, self.config.residual_channels, 1)
         self.first_skip = nn.Conv2d(
-            1, self.config.residual_channels, (1, config.timepoints_input)
+            1, self.config.skip_layer_channels, (1, config.timepoints_input)
         )
         self.graph_learn = GraphLearningLayer(config)
         self.timeCM = nn.ModuleList(
