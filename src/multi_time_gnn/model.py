@@ -17,8 +17,8 @@ class GraphLearningLayer(nn.Module):
         # If node_emb is already known with k features, change k accordingly and change node_emb_emitter and receiver
         self.node_emb_emitter = nn.Embedding(config.N, k)
         self.node_emb_receiver = nn.Embedding(config.N, k)
-        self.theta1 = nn.Parameter(torch.randn(k, config.embedding_dim))
-        self.theta2 = nn.Parameter(torch.randn(k, config.embedding_dim))
+        self.theta1 = nn.Parameter(torch.randn(config.N, config.embedding_dim))
+        self.theta2 = nn.Parameter(torch.randn(config.N, config.embedding_dim))
 
     def forward(self, v=None):
         """
@@ -90,6 +90,7 @@ class MixHopPropagationLayer(nn.Module):
         Hout = 0
         for i in range(self.config.k):
             graph_times_hprev = torch.einsum("n m, bcnt -> b c m t", Atilde, Hprev)  # BxCxNxT
+            # Here n and m are the same but in order to use einsum we have to give different names
             log.debug(f"graph_times_hp shape :{graph_times_hprev.shape}")
             Hprev = self.config.beta * Hin + (1 - self.config.beta) * graph_times_hprev  # BxCxNxT
             log.debug(f"hprev shape :{Hprev.shape}")
@@ -114,28 +115,16 @@ class DilatedInceptionLayer(nn.Module):
     def __init__(self, config, d):
         super().__init__()
         out_channel = config.residual_channels // 4
-        conv_size = [2, 3, 5, 7]  # change from 3 to 2, right ?
-        padding = ["same", "same", "same", "same"]
+        conv_size = [2, 3, 5, 7]
         self.convs = []
-        self.convs_1D = []
-        for k, size in enumerate(conv_size):
-            # no stride because we just want to have the same size at the end 
-            # self.convs.append(
-            #     nn.Conv2d(
-            #         config.residual_channels,
-            #         out_channel,
-            #         kernel_size=(1, size),
-            #         stride=(1, d),
-            #         padding=(0, size // 2),
-            #     )
-            # )
+        for size in conv_size:
             self.convs.append(
-                nn.Conv1d(
-                    config.residual_channels*config.N,
-                    out_channel*config.N,
-                    kernel_size=size,
-                    dilation=d,
-                    padding=padding[k],
+                nn.Conv2d(
+                    config.residual_channels,
+                    out_channel,
+                    kernel_size=(1, size),
+                    dilation=(1, d),
+                    #padding=(0, size // 2),
                 )
             )
         self.convs = nn.ModuleList(self.convs)
@@ -143,20 +132,14 @@ class DilatedInceptionLayer(nn.Module):
     def forward(self, x):
         log.debug(f"shape x dilated : {x.shape}")
         res = []
-        # min_t_size = x.shape[2]
         for conv in self.convs:
-            x_reshape = x.reshape(x.shape[0], -1, x.shape[-1]) # BxC*NxT 
-            res_conv = conv(x_reshape) # BxC*NxT
-            res_conv = res_conv.reshape(x.shape[0], x.shape[1]//4, -1, x.shape[3]) # BxCxNxT
+            res_conv = conv(x) # BxC//4xNxT'
             res.append(res_conv)
-
-            ## Not sure what it is doing after this line, it's giving a bug because the shape has changed
-            # min_t_size = min(min_t_size, res_conv.shape[3])  # retrieve T
-            # log.debug(f"min_size_t: {min_t_size}, res_conv_shape: {res_conv.shape}")
-            ##
+        min_t_size = res[-1].shape[3]
+        log.debug(f"min_size_t: {min_t_size}, res_conv_shape: {res_conv.shape}")
         # Truncate to match size along T
-        # res = [xt[:, :, :, :min_t_size] for xt in res]
-        return torch.cat(res, dim=1)  # along C
+        res = [xt[:, :, :, -min_t_size:] for xt in res]
+        return torch.cat(res, dim=1)  # along C # BxCxNxT_4'
 
 
 class TimeConvolutionModule(nn.Module):
@@ -221,15 +204,14 @@ class NextStepModel(nn.Module):
         log.debug(f"x shape first conv: {x.shape}")
         skip = self.first_skip(input)  # BxCxTxN
         log.debug(f"x shape first skip: {x.shape}")
-        residual = x
         for i in range(self.config.m):
+            residual = x
             x1 = self.timeCM[i](x)  # BxCxT'xN  # may reduce in T due to convolution
             log.debug(f"x shape timeCM: {x1.shape}")
             x2 = self.graphCM[i](x1, graph)  # BxCxTxN
             log.debug(f"x shape graphCM: {x2.shape}")
+            x2 = self.layer_norm[i](x2)
             x = x2 + residual
-            x = self.layer_norm[i](x)
-            residual = x  # we need to update the residual ?
             skip += x1  # are we sure we need to add them and not to concatenate them?
 
         next_point = self.output_module(skip + x)

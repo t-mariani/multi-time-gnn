@@ -20,8 +20,21 @@ First version is based on :
 ### Things that we need to understand
 What is the channel in the convolution layer? Not clear at all for me.
 
+How to deal with the dimensions:
+- dimension of the time is changing
+- dimension of the channels is changing
 
-### Constants names
+### TO DO:
+How to deal with the dimensions:
+- dimension of the channels is changing? Reduction ? Or it increases
+
+- implementation convolution skip connections
+- dropout after time module
+- output module
+
+
+
+### Constant names
 
 N: number of sensors
 A: adjency matrix (represents the graph)
