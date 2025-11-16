@@ -259,7 +259,8 @@ class NextStepModel(nn.Module):
 
             x2 = self.graphCM[i](x1, graph)  # BxCxNxT'
             log.debug(f"x shape graphCM, block {i}: {x2.shape}")
-            x2 = self.layer_norm[i](x2)  # BxCxNxT'
+            if self.config.enable_layer_norm:
+                x2 = self.layer_norm[i](x2)  # BxCxNxT'
 
             x = (
                 x2 + residual[:, :, :, -x2.size(3) :]

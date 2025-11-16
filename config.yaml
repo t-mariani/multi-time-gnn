@@ -9,6 +9,7 @@ beta : 0.05 # ratio of retained info from root node
 k_sparsity: 20 # Number of edges to keep per node in graph sparsification
 p_dropout: 0.3 # Dropout after time convolution module
 embedding_dim : 40 # Dimension of captors embeddings for the graph computation
+enable_layer_norm: True
 learning_rate : 0.001
 weight_decay : 0.0001 # Regularisation L2 
 residual_channels: 16 # Channels for the main loop, define time convolution module, divisible by 4
