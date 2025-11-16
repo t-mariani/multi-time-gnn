@@ -15,3 +15,14 @@ First version is based on :
       url={https://arxiv.org/abs/2005.11650}, 
 }
 ```
+
+
+### Things that we need to understand
+What is the channel in the convolution layer? Not clear at all for me.
+
+
+### Constants names
+
+N: number of sensors
+A: adjency matrix (represents the graph)
+C: embedding dimension
