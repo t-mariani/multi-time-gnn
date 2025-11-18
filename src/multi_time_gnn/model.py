@@ -75,7 +75,12 @@ class MixHopPropagationLayer(nn.Module):
         super().__init__()
         self.config = config
         self.mlps = nn.ModuleList(
-            [nn.Linear(config.N, config.N, bias=False) for _ in range(config.k)]
+            [
+                nn.Linear(
+                    config.residual_channels, config.residual_channels, bias=False
+                )
+                for _ in range(config.k)
+            ]
         )
 
     def forward(self, Hin, A):
@@ -114,8 +119,8 @@ class MixHopPropagationLayer(nn.Module):
             )  # BxCxNxT
             log.debug(f"hprev shape :{Hprev.shape}")
             Hout += rearrange(
-                self.mlps[i](rearrange(Hprev, "b c n t -> b c t n")),
-                "b c t n -> b c n t",
+                self.mlps[i](rearrange(Hprev, "b c n t -> b n t c")),
+                "b n t c -> b c n t",
             )
         return Hout  # BxCxNxT
 

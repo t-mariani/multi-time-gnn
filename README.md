@@ -30,7 +30,7 @@ How to deal with the dimensions:
 - [x] implementation convolution skip connections
 - [x] dropout after time module
 - [x] regarder output module -> cf A.3 Experimental Setup
-- [ ] Revoir les MLP layer -> doit etre selon les channels/features et non les capteurs
+- [x] Revoir les MLP layer -> doit etre selon les channels/features et non les capteurs
 - [ ] Normalisation des dataset : scale par capteur ? 
 - [ ] Layernorm : pourquoi autant de paramètres ? 
 - [ ] Training : create real epoch -> Dataloader
