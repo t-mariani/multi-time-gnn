@@ -4,7 +4,7 @@ import torch
 from torchinfo import summary
 
 from multi_time_gnn.model import NextStepModel
-from multi_time_gnn.dataset import normalize, read_dataset
+from multi_time_gnn.dataset import normalize, read_dataset, find_mean_std, TimeSeriesDataset
 from multi_time_gnn.training import train_loop
 from multi_time_gnn.test import test_step
 from multi_time_gnn.visualization import pipeline_plotting
@@ -16,15 +16,25 @@ if __name__ == "__main__":
     config = load_config()
     log = get_logger("main", config.log_level)
     log.debug(config)
+    config.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    dataset = read_dataset(config.dataset_name)
-    train_size = int(len(dataset) * config.train_ratio)
-    train, val = dataset[:train_size], dataset[train_size:]
+    dataset = read_dataset(config.dataset_name)  # NxT
+    nb_timestep = dataset.shape[-1]
+    train_size = int(nb_timestep * config.train_ratio)
+    val_size = int(nb_timestep * (1 - config.train_ratio) // 2)
+    train, val, test = (
+        dataset[:, :train_size],
+        dataset[:, train_size:train_size+val_size],
+        dataset[:, train_size+val_size:]
+        )
 
-    train = normalize(train)
-    val = normalize(val)  # weird
-    T, N = dataset.shape
-    log.info(f"Dataset '{config.dataset_name}' shape : {T, N}")
+    y_mean, y_std = find_mean_std(train)
+    train = normalize(train, y_mean, y_std)
+    val = normalize(val, y_mean, y_std)
+    test = normalize(test, y_mean, y_std)
+    dataset_train, dataset_val = TimeSeriesDataset(train, config), TimeSeriesDataset(val, config)
+    N, T = dataset.shape
+    log.info(f"Dataset '{config.dataset_name}' shape : {N, T}")
     # Update config with dataset specific parameters
     config.N = N
     # Update config with output directory with timestamp
@@ -33,6 +43,7 @@ if __name__ == "__main__":
     config.output_dir = str(dir_path)
 
     model = NextStepModel(config)
+    model.to(config.device)
 
     summary(
         model,
@@ -48,7 +59,7 @@ if __name__ == "__main__":
 
     log.info("Starting training...")
     try:
-        train_loop(model, train, optimizer, config)
+        train_loop(model, dataset_train, dataset_val, optimizer, config)
     except KeyboardInterrupt:
         log.warning("Training interrupted by user.")
 
