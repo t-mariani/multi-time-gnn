@@ -31,11 +31,11 @@ How to deal with the dimensions:
 - [x] dropout after time module
 - [x] regarder output module -> cf A.3 Experimental Setup
 - [x] Revoir les MLP layer -> doit etre selon les channels/features et non les capteurs
-- [ ] Normalisation des dataset : scale par capteur ? 
+- [x] Normalisation des dataset : scale par capteur ? 
 - [ ] Layernorm : pourquoi autant de paramètres ? 
-- [ ] Training : create real epoch -> Dataloader
+- [x] Training : create real epoch -> Dataloader
 - [ ] Avoir les mêmes métriques : horizon 3, 6, 12, 24 
-- [ ] créer train, val, test set pour logger
+- [x] créer train, val, test set pour logger
 
 Bonus:
 - [ ] Faire le training avec une sous partie du graphe 
@@ -47,3 +47,20 @@ Bonus:
 N: number of sensors
 A: adjency matrix (represents the graph)
 C: embedding dimension
+
+
+### The normalisation strategy
+
+We have a multivariate time series data. We want to normalise it.
+
+We have three dataset: training, test, validation. 
+
+We are going to normalise the training dataset for each dimension like that: $\hat{y}_{train, i} = \frac{y_{train, i} - \overline{y}_{train, i}}{\sigma_{train, i}}$
+
+Where $\overline{y}_{train, i}$ is the mean of the training dataset in the i th dimension and $\sigma_{train, i}$ is its standard deviation 
+
+Then, during inference we will do for all the dimension i:
+
+$
+\hat{y}_{test, i} = \frac{y_{test, i} - \overline{y}_{train, i}}{\sigma_{train, i}}
+$

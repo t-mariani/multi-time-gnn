@@ -11,6 +11,9 @@ predict = "python prediction.py"
 p = [{ task = "predict" }]
 t = [{ task = "train" }]
 
+[system-requirements]
+cuda = "12.4" # in order to have the gpu, you can comment 
+
 [dependencies]
 pytorch = ">=2.8.0,<3"
 ipykernel = ">=7.0.0,<8"
