@@ -32,7 +32,7 @@ How to deal with the dimensions:
 - [x] regarder output module -> cf A.3 Experimental Setup
 - [x] Revoir les MLP layer -> doit etre selon les channels/features et non les capteurs
 - [x] Normalisation des dataset : scale par capteur ? 
-- [ ] Layernorm : pourquoi autant de paramètres ? 
+- [x] Layernorm : pourquoi autant de paramètres ? 
 - [x] Training : create real epoch -> Dataloader
 - [ ] Avoir les mêmes métriques : horizon 3, 6, 12, 24 
 - [x] créer train, val, test set pour logger

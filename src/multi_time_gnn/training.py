@@ -11,6 +11,14 @@ def train_loop(model, dataset_train, dataset_val, optimizer, config):
     # nodes = [1:N] TODO implement when subgraphs
     train_loader = DataLoader(dataset_train, batch_size=config.batch_size, shuffle=True)
     val_loader = DataLoader(dataset_val, batch_size=config.batch_size, shuffle=False)
+    model.eval()
+    log_loss_val = []
+    for x_val, y_val in val_loader:
+        x_val = x_val.to(config.device)
+        y_val = y_val.to(config.device)
+        _, loss = model(x_val, y_val)
+        log_loss_val.append(loss.item())
+    log.info(f"Step 0: val: {(sum(log_loss_val) / len(log_loss_val)):.3f}")
     for i in range(1, config.n_epoch + 1):
         log_loss = []
         model.train()
@@ -25,6 +33,7 @@ def train_loop(model, dataset_train, dataset_val, optimizer, config):
                 break
             loss.backward()
             optimizer.step()
+            optimizer.zero_grad()
             # Log
             log_loss.append(loss.item())
         model.eval()
