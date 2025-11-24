@@ -2,7 +2,7 @@
 authors = ["Tom Mariani <tom.mariani.dev@gmail.com>"]
 channels = ["conda-forge"]
 name = "multi-time-gnn"
-platforms = ["linux-64"]
+platforms = ["osx-arm64", "linux-64"]
 version = "0.1.0"
 
 [tasks]
@@ -11,11 +11,8 @@ predict = "python prediction.py"
 p = [{ task = "predict" }]
 t = [{ task = "train" }]
 
-[system-requirements]
-cuda = "12.8" # in order to have the gpu, you can comment 
-
 [dependencies]
-torch = ">=2.8.0,<3"
+pytorch = ">=2.8.0,<3"
 ipykernel = ">=7.0.0,<8"
 torchinfo = ">=1.8.0,<2"
 einops = ">=0.8.1,<0.9"
