@@ -65,17 +65,18 @@ def get_batch(
 
 
 class TimeSeriesDataset(Dataset):
-    def __init__(self, data, config):
+    def __init__(self, data, config, length_prediction=1):
         self.data = data
         self.nb_points = config.timepoints_input
         self.device = config.device
+        self.length_prediction = length_prediction
 
     def __len__(self):
-        return self.data.shape[-1] - self.nb_points - 1
+        return self.data.shape[-1] - self.nb_points - self.length_prediction
 
     def __getitem__(self, idx):
         x = self.data[:, idx:idx + self.nb_points]
-        y = self.data[:, idx + self.nb_points]
+        y = self.data[:, idx + self.nb_points: idx + self.nb_points + self.length_prediction].squeeze()
         x = x[None, :, :]  # 1xNxT
         return torch.from_numpy(x).float(), torch.from_numpy(y).float()
 

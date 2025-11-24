@@ -9,6 +9,7 @@ from multi_time_gnn.training import train_loop
 from multi_time_gnn.test import test_step
 from multi_time_gnn.visualization import pipeline_plotting
 from multi_time_gnn.utils import load_config, get_logger, register_model
+from multi_time_gnn.horizon import horizon_computing
 
 
 if __name__ == "__main__":
@@ -71,5 +72,8 @@ if __name__ == "__main__":
 
     log.info("Generating plots...")
     pipeline_plotting(model, test, config)
+
+    log.info("Computing the horizon...")
+    horizon_computing(model, test, config, y_mean, y_std)
 
     log.info("✅ Pipeline completed successfully")
