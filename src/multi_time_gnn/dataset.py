@@ -3,16 +3,10 @@ from einops import rearrange
 import torch
 import numpy as np
 from multi_time_gnn.utils import get_logger
-from torch.utils.data import Dataset
 
 log = get_logger()
 
 available_datasets = ["electricity", "traffic", "solar", "exchange"]
-
-
-def find_mean_std(train) -> tuple[np.ndarray, np.ndarray]:
-    """Find the mean and the standard devitation for all the dimension of the training"""
-    return train.mean(axis=1), train.std(axis=1)
 
 
 def read_dataset(
@@ -37,7 +31,7 @@ def read_dataset(
 
     return np.array(
         data
-    ).T  # Return size : NxT 
+    )  # Return size : TxN # TODO return tensor instead to speed up get_batch
 
 
 def get_batch(
@@ -69,27 +63,7 @@ def get_batch(
     return x, y  # Return : Bx1xNxT, Bx1xNxy_t
 
 
-class TimeSeriesDataset(Dataset):
-    def __init__(self, data, config):
-        self.data = data
-        self.nb_points = config.timepoints_input
-        self.device = config.device
-
-    def __len__(self):
-        return self.data.shape[-1] - self.nb_points - 1
-
-    def __getitem__(self, idx):
-        x = self.data[:, idx:idx + self.nb_points]
-        y = self.data[:, idx + self.nb_points]
-        x = x[None, :, :]  # 1xNxT
-        return torch.from_numpy(x).float(), torch.from_numpy(y).float()
-
-
-def normalize(data, mean, std):
-    """Normalize the data over all the dimension with mean and std"""
-    return (data - mean[:, None]) / std[:, None]
-
-
-def denormalize(data, mean, std):
-    """Denormalize the data over all the dimension with mean and std"""
-    return data * std[:, None] + mean[:, None]
+def normalize(data):
+    print(np.max(np.abs(data), axis=0).shape)
+    res = data / np.max(np.abs(data), axis=0, keepdims=True, initial=1e-7)
+    return res

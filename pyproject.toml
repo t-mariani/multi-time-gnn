@@ -1,24 +1,12 @@
-[tool.poetry]
-name = "mutli-time-gnn"
-version = "0.1.0"
-description = ""
-packages = [
-    { include = "multi_time_gnn", from = "src" },
-]
-authors = ["Hugo Pavy <hugo.pavy@gmail.com>"]
-readme = "README.md"
-
-[tool.poetry.dependencies]
-python = ">=3.10,<=3.14.12"
-torch = ">=2.8.0,<3"
-ipykernel = ">=7.0.0,<8"
-torchinfo = ">=1.8.0,<2"
-einops = ">=0.8.1,<0.9"
-pyyaml = ">=5.3.1"  # Note: The package is named `pyyaml`, not `pyaml`
-python-box = ">=7.3.2,<8"
-tqdm = ">=4.67.1,<5"
-matplotlib = ">=3.10.7,<4"
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multi_time_gnn"
+version = "0.1.0"
+dependencies = [] 
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["multi_time_gnn"]

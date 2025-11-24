@@ -20,8 +20,8 @@ class GraphLearningLayer(nn.Module):
             k = 1
             self.node_emb_emitter = nn.Embedding(config.N, k)
             self.node_emb_receiver = nn.Embedding(config.N, k)
-            self.theta1 = nn.Parameter(torch.randn(k, config.embedding_dim, device=config.device))
-            self.theta2 = nn.Parameter(torch.randn(k, config.embedding_dim, device=config.device))
+            self.theta1 = nn.Parameter(torch.randn(k, config.embedding_dim))
+            self.theta2 = nn.Parameter(torch.randn(k, config.embedding_dim))
         else:
             self.node_emb_emitter = nn.Embedding(config.N, config.embedding_dim)
             self.node_emb_receiver = nn.Embedding(config.N, config.embedding_dim)
@@ -32,10 +32,10 @@ class GraphLearningLayer(nn.Module):
         """
         if v is None:
             embed_emitter = self.node_emb_emitter(
-                torch.arange(0, self.config.N, dtype=torch.int).to(self.config.device)
+                torch.arange(0, self.config.N, dtype=torch.int)
             )
             embed_receiver = self.node_emb_receiver(
-                torch.arange(0, self.config.N, dtype=torch.int).to(self.config.device)
+                torch.arange(0, self.config.N, dtype=torch.int)
             )
         else:
             embed_emitter = self.node_emb_emitter[v]
@@ -104,7 +104,7 @@ class MixHopPropagationLayer(nn.Module):
         row_sums = torch.sum(graph, dim=1)
         Dmoins1 = torch.diag(1 / (1 + row_sums))  # NxN
         log.debug(Dmoins1.shape)
-        Atilde = Dmoins1 @ (A + torch.eye(self.config.N, device=self.config.device))  # NxN
+        Atilde = Dmoins1 @ (A + torch.eye(self.config.N))  # NxN
 
         Hprev = Hin
         Hout = 0
@@ -280,5 +280,5 @@ class NextStepModel(nn.Module):
             return next_point, None
 
         log.debug(f"Compared y : {y.shape}")
-        loss = self.loss(next_point.squeeze(), y)
+        loss = self.loss(next_point, y)
         return next_point, loss
