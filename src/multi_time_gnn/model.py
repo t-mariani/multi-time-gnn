@@ -280,5 +280,5 @@ class NextStepModel(nn.Module):
             return next_point, None
 
         log.debug(f"Compared y : {y.shape}")
-        loss = self.loss(next_point.squeeze(), y)
+        loss = self.loss(next_point.squeeze(), y.squeeze())
         return next_point, loss

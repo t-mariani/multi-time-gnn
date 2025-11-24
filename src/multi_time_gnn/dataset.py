@@ -41,11 +41,11 @@ def read_dataset(
 
 
 def get_batch(
-    batch_size: int, dataset: np.ndarray, t, y_t=1, index=None
+    batch_size: int, dataset: np.ndarray, t, y_t=1, index=None, device='cpu'
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """
     batch_size : int
-    dataset : array size (bigT,N)
+    dataset : array size (N, bigT)
     t : int, input timepoints
     y_t : int, output timepoints
     index : list of int, optional, timepoints indices for the batch
@@ -54,19 +54,14 @@ def get_batch(
     x : torch.Tensor of size (batch_size,1,N,t)
     y : torch.Tensor of size (batch_size,1,N,y_t)
     """
-    bigT, N = dataset.shape
+    N, bigT = dataset.shape
     if index is not None:
         idx = index
     else:
         idx = torch.randint(0, bigT - t - y_t, (batch_size,))
-    x = rearrange(
-        torch.Tensor(np.array([dataset[i : i + t, :] for i in idx])), "b t n -> b 1 n t"
-    )
-    y = rearrange(
-        torch.Tensor(np.array([dataset[i + t : i + t + y_t, :] for i in idx])),
-        "b t n -> b 1 n t",
-    )
-    return x, y  # Return : Bx1xNxT, Bx1xNxy_t
+    x = torch.Tensor(np.array([dataset[:, i: i + t] for i in idx]))
+    y = torch.Tensor(np.array([dataset[:, i + t: i + t + y_t] for i in idx]))
+    return x[:, None, :, :].to(device), y[:, None, :, :].to(device)  # Return : Bx1xNxT, Bx1xNxy_t
 
 
 class TimeSeriesDataset(Dataset):

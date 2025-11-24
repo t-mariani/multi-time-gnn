@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import TABLEAU_COLORS
 import numpy as np
 import torch
-
-from multi_time_gnn.dataset import get_batch
+from multi_time_gnn.dataset import TimeSeriesDataset, get_batch
 from multi_time_gnn.test import predict_multi_step, test_step
 from multi_time_gnn.utils import get_logger
 
@@ -54,13 +53,13 @@ def plot_prediction(true, predicted_one_step, full_prediction, show=True):
     Plots the true values, one-step predictions, and full multi-step predictions.
 
     Parameters:
-    - true: np.ndarray of shape (T, N), the ground truth time series data.
-    - predicted_one_step: np.ndarray of shape (T - timepoints_input - 1, N),
+    - true: np.ndarray of shape (N, T), the ground truth time series data.
+    - predicted_one_step: np.ndarray of shape (N, T - timepoints_input - 1),
       the one-step ahead predictions.
-    - full_prediction: np.ndarray of shape (T - timepoints_input - 1, N),
+    - full_prediction: np.ndarray of shape (N, T - timepoints_input - 1),
       the multi-step ahead predictions.
     """
-    T, N = true.shape
+    N, T = true.shape
     timepoints_input = T - predicted_one_step.shape[0] - 1
 
     time_true = np.arange(T)
@@ -69,7 +68,7 @@ def plot_prediction(true, predicted_one_step, full_prediction, show=True):
     fig = plt.figure(figsize=(15, 5 * N))
     for i in range(N):
         plt.subplot(N, 1, i + 1)
-        plt.plot(time_true, true[:, i], label="True", color="blue")
+        plt.plot(time_true, true[i, :], label="True", color="blue")
         plt.plot(
             time_pred,
             predicted_one_step[:, i],
@@ -117,11 +116,11 @@ def pipeline_plotting(model, test_data, config, clip_N: int | NoneType = 10):
 
     Parameters:
     - model: trained model
-    - test_data: np.ndarray of shape (T, N), the test time series data.
+    - test_data: np.ndarray of shape (N, T), the test time series data.
     - config : configuration
     - clip_N: int, number of nodes to visualize (default is 10)
     """
-    T, N = test_data.shape
+    N, T = test_data.shape
     timepoints_input = config.timepoints_input
     n_steps = T - timepoints_input - 1
 
@@ -132,16 +131,16 @@ def pipeline_plotting(model, test_data, config, clip_N: int | NoneType = 10):
 
     # Multi-step ahead predictions)
     input_sequence, _ = get_batch(
-        1, test_data, timepoints_input, 1, index=[0]
+        1, test_data, timepoints_input, 1, index=[0], device=config.device
     )  # Shape (1, 1, N, timepoints_input + 1)
     full_prediction = predict_multi_step(
         model, input_sequence, n_steps
     )  # Shape (N, n_steps)
 
     if clip_N is not None and N > clip_N:
-        predicted_one_step_points = predicted_one_step_points[:, :clip_N]
-        full_prediction = full_prediction[:, :clip_N]
-        test_data = test_data[:, :clip_N]
+        predicted_one_step_points = predicted_one_step_points[:, :clip_N].T
+        full_prediction = full_prediction[:, :clip_N].T # NxT
+        test_data = test_data[:clip_N, :] # NxT
 
     log.info(" * Plotting Predictions")
     fig_predict = plot_prediction(

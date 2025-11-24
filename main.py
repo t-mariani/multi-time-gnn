@@ -67,9 +67,9 @@ if __name__ == "__main__":
     register_model(model, config=config)
 
     # log.info("Testing model...")
-    # ypred = test_step(model, val, config) # commented because plotting function already does testing
+    #ypred = test_step(model, test, config) # commented because plotting function already does testing
 
     log.info("Generating plots...")
-    pipeline_plotting(model, val, config)
+    pipeline_plotting(model, test, config)
 
     log.info("✅ Pipeline completed successfully")
