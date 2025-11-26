@@ -1,15 +1,14 @@
 import torch
 from tqdm import tqdm
 import numpy as np
-
-from multi_time_gnn.dataset import get_batch
+from torch.utils.data import DataLoader
+from multi_time_gnn.dataset import TimeSeriesDataset, get_batch
 from multi_time_gnn.utils import get_logger
 
 log = get_logger()
 
-
 def test_step(model, val, config):
-    n_possible_validation = len(val) - config.timepoints_input - 1  # len(val) = T_val
+    n_possible_validation = val.shape[-1] - config.timepoints_input - 1  # len(val) = T_val
 
     model.eval()
     with torch.no_grad():
@@ -24,6 +23,7 @@ def test_step(model, val, config):
                 config.timepoints_input,
                 y_t=1,
                 index=index,
+                device=config.device
             )
             y_pred, loss = model(xt, yt)
             total_ypred.append(y_pred.cpu())
@@ -34,11 +34,24 @@ def test_step(model, val, config):
     log.debug(f"total_ypred length: {total_ypred.shape}")
     return total_ypred.numpy()  # Shape (n_possible_validation, N)
 
+def loss_test_step(model, config, val=None, val_loader=None):
+    if val_loader is None:
+        val_dataset = TimeSeriesDataset(val, config)
+        val_loader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False)
+    model.eval()
+    with torch.no_grad():
+        loss_val = []
+        for x_val, y_val in val_loader:
+            x_val = x_val.to(config.device)
+            y_val = y_val.to(config.device)
+            _, loss = model(x_val, y_val)
+            loss_val.append(loss.item())
+    return sum(loss_val) / len(loss_val)
+
 
 def predict_multi_step(model, input_sequence, n_steps):
     model.eval()
     input_seq = input_sequence.clone().detach()
-
     predictions = []
     with torch.no_grad():
         for _ in tqdm(range(n_steps)):
