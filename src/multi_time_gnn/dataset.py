@@ -10,11 +10,6 @@ log = get_logger()
 available_datasets = ["electricity", "traffic", "solar", "exchange"]
 
 
-def find_mean_std(train) -> tuple[np.ndarray, np.ndarray]:
-    """Find the mean and the standard devitation for all the dimension of the training"""
-    return train.mean(axis=1), train.std(axis=1)
-
-
 def read_dataset(
     which: Literal["electricity", "traffic", "solar", "exchange"],
 ) -> list[list[float]]:
@@ -40,30 +35,6 @@ def read_dataset(
     ).T  # Return size : NxT 
 
 
-def get_batch(
-    batch_size: int, dataset: np.ndarray, t, y_t=1, index=None, device='cpu'
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    batch_size : int
-    dataset : array size (N, bigT)
-    t : int, input timepoints
-    y_t : int, output timepoints
-    index : list of int, optional, timepoints indices for the batch
-
-    Returns :
-    x : torch.Tensor of size (batch_size,1,N,t)
-    y : torch.Tensor of size (batch_size,1,N,y_t)
-    """
-    N, bigT = dataset.shape
-    if index is not None:
-        idx = index
-    else:
-        idx = torch.randint(0, bigT - t - y_t, (batch_size,))
-    x = torch.Tensor(np.array([dataset[:, i: i + t] for i in idx]))
-    y = torch.Tensor(np.array([dataset[:, i + t: i + t + y_t] for i in idx]))
-    return x[:, None, :, :].to(device), y[:, None, :, :].to(device)  # Return : Bx1xNxT, Bx1xNxy_t
-
-
 class TimeSeriesDataset(Dataset):
     def __init__(self, data, config, length_prediction=1):
         self.data = data
@@ -80,6 +51,10 @@ class TimeSeriesDataset(Dataset):
         x = x[None, :, :]  # 1xNxT
         return torch.from_numpy(x).float(), torch.from_numpy(y).float()
 
+
+def find_mean_std(train) -> tuple[np.ndarray, np.ndarray]:
+    """Find the mean and the standard devitation for all the dimension of the training"""
+    return train.mean(axis=1), train.std(axis=1)
 
 def normalize(data, mean, std):
     """Normalize the data over all the dimension with mean and std"""
