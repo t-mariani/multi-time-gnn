@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "mutli-time-gnn"
+name = "multi-time-gnn"
 version = "0.1.0"
 description = ""
 packages = [
