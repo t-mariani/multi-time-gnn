@@ -47,6 +47,25 @@ def plot_batch(x, y, show=True):
         plt.show()
     return fig
 
+def plot_signal_prediction(time, signal, label=None, color=None):
+    """
+    Plots a signal over time.
+
+    Parameters:
+    - time: array-like, time points
+    - signal: array-like, signal values
+    - label: str, label for the plot
+    - color: str, color for the plot
+    """
+    N,T = signal.shape
+    for i in range(N):
+        plt.subplot(N, 1, i + 1)
+        plt.plot(time, signal[i, :], label=label, color=color)
+        plt.title(f"Node {i}")
+        plt.xlabel("Time")
+        plt.ylabel("Value")
+        plt.legend()
+        plt.grid()
 
 def plot_prediction(true, predicted_one_step, full_prediction, show=True):
     """
@@ -66,26 +85,36 @@ def plot_prediction(true, predicted_one_step, full_prediction, show=True):
     time_pred = np.arange(timepoints_input + 1, T)
 
     fig = plt.figure(figsize=(15 * timepoints_input / 1000, 5 * N))
-    for i in range(N):
-        plt.subplot(N, 1, i + 1)
-        plt.plot(time_true, true[i, :], label="True", color="blue")
-        plt.plot(
-            time_pred,
-            predicted_one_step[i, :],
-            label="One-step Prediction",
-            color="orange",
-        )
-        plt.plot(
-            time_pred,
-            full_prediction[i, :],
-            label="Multi-step Prediction",
-            color="green",
-        )
-        plt.title(f"Node {i}")
-        plt.xlabel("Time")
-        plt.ylabel("Value")
-        plt.legend()
-        plt.grid()
+    plot_signal_prediction(time_true, true, "True", "tab:blue")
+    plot_signal_prediction(time_pred, predicted_one_step, "One-step Prediction", "tab:orange")
+    plot_signal_prediction(time_pred, full_prediction, "Multi-step Prediction", "tab:green")
+
+    plt.tight_layout()
+    if show:
+        plt.show()
+    return fig
+
+def plot_prediction_horizons(true, signal_horizons, selected_horizons, show=True):
+    """
+    Plots the true values, one-step predictions, and full multi-step predictions.
+
+    Parameters:
+    - true: np.ndarray of shape (N, T), the ground truth time series data.
+    - signal_horizons: np.ndarray of shape (n_horizons, N, T - timepoints_input - 1),
+    - selected_horizons : list of int, indices of horizons to plot
+    """
+    N, T = true.shape
+    timepoints_input = T - signal_horizons.shape[2] - 1
+
+    time_true = np.arange(T)
+    time_pred = np.arange(timepoints_input + 1, T)
+
+    fig = plt.figure(figsize=(15 * timepoints_input / 1000, 5 * N))
+    plot_signal_prediction(time_true, true, "True", "tab:blue")
+    for h in selected_horizons:
+        signal = signal_horizons[h - 1]  # h starts at 1, shape (N, T - timepoints_input - 1)
+        plot_signal_prediction(time_pred, signal, f"Horizon {h}")
+
     plt.tight_layout()
     if show:
         plt.show()

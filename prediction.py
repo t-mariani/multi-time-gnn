@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from multi_time_gnn.dataset import find_mean_std, read_dataset, normalize, split_train_val_test
+from multi_time_gnn.horizon import horizon_computing
 from multi_time_gnn.model import NextStepModel
 from multi_time_gnn.visualization import pipeline_plotting
 from multi_time_gnn.utils import get_logger, load_config, get_latest_dir, load_model
@@ -27,3 +28,6 @@ if __name__ == "__main__":
 
     log.info("Generating plots...")
     pipeline_plotting(model, test, y_mean, y_std, config)
+
+    log.info("Computing the horizon...")
+    horizon_computing(model, test, config, y_mean, y_std)
