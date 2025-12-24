@@ -1,5 +1,6 @@
 
 from einops import rearrange
+from matplotlib import pyplot as plt
 from multi_time_gnn.utils import get_logger
 from multi_time_gnn.dataset import TimeSeriesDataset, denormalize
 from torch.utils.data import DataLoader
@@ -25,7 +26,7 @@ def horizon_computing(model, test, config, y_mean, y_std, list_horizon=None):
     prediction_result_list = []
     model.eval()
     with torch.no_grad():
-        for k, (x, y) in tqdm(enumerate(dataloader_test)):
+        for k, (x, y) in tqdm(enumerate(dataloader_test), total=min(len(dataloader_test), config.nb_test)):
             for j in range(max_horizon):
                 x = x.to(config.device)
                 y_true = y[:, :, j].to(config.device)
@@ -56,6 +57,7 @@ def horizon_computing(model, test, config, y_mean, y_std, list_horizon=None):
     signal_horizons = rearrange(prediction_result, "T 1 N H -> H N T")
     signal_horizons_denorm = denormalize(signal_horizons, y_mean, y_std)
     cliped_capteur = min(10, config.N)  # To avoid too much plots
-    test = test[:cliped_capteur, :]
+    test = test[:cliped_capteur, :config.timepoints_input + config.nb_test ]  # NxT
     signal_horizons_denorm = signal_horizons_denorm[:, :cliped_capteur, :]
-    plot_prediction_horizons(test, signal_horizons_denorm, selected_horizons=list_horizon)
+    plot_prediction_horizons(test, signal_horizons_denorm, selected_horizons=list_horizon, show=False)
+    plt.savefig(f"{config.output_dir}/horizon_plot.png", dpi=300)

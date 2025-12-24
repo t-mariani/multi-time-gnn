@@ -73,16 +73,16 @@ def plot_prediction(true, predicted_one_step, full_prediction, show=True):
 
     Parameters:
     - true: np.ndarray of shape (N, T), the ground truth time series data.
-    - predicted_one_step: np.ndarray of shape (N, T - timepoints_input - 1),
+    - predicted_one_step: np.ndarray of shape (N, T - timepoints_input),
       the one-step ahead predictions.
-    - full_prediction: np.ndarray of shape (N, T - timepoints_input - 1),
+    - full_prediction: np.ndarray of shape (N, T - timepoints_input),
       the multi-step ahead predictions.
     """
     N, T = true.shape
-    timepoints_input = T - predicted_one_step.shape[1] - 1
+    timepoints_input = T - predicted_one_step.shape[1]
 
     time_true = np.arange(T)
-    time_pred = np.arange(timepoints_input + 1, T)
+    time_pred = np.arange(timepoints_input, T)
 
     fig = plt.figure(figsize=(15 * T / 1000, 5 * N))
     plot_signal_prediction(time_true, true, "True", "tab:blue")
@@ -100,19 +100,19 @@ def plot_prediction_horizons(true, signal_horizons, selected_horizons, show=True
 
     Parameters:
     - true: np.ndarray of shape (N, T), the ground truth time series data.
-    - signal_horizons: np.ndarray of shape (n_horizons, N, T - timepoints_input - 1),
+    - signal_horizons: np.ndarray of shape (n_horizons, N, T - timepoints_input),
     - selected_horizons : list of int, indices of horizons to plot
     """
     N, T = true.shape
-    timepoints_input = T - signal_horizons.shape[2] - 1
+    timepoints_input = T - signal_horizons.shape[2]
 
     time_true = np.arange(T)
-    time_pred = np.arange(timepoints_input + 1, T)
+    time_pred = np.arange(timepoints_input, T)
 
     fig = plt.figure(figsize=(15 * T / 1000, 5 * N))
     plot_signal_prediction(time_true, true, "True", "tab:blue")
     for h in selected_horizons:
-        signal = signal_horizons[h - 1]  # h starts at 1, shape (N, T - timepoints_input - 1)
+        signal = signal_horizons[h - 1]  # h starts at 1, shape (N, T - timepoints_input)
         plot_signal_prediction(time_pred, signal, f"Horizon {h}")
 
     plt.tight_layout()
