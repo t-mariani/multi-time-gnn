@@ -14,6 +14,7 @@ if __name__ == "__main__":
     # Load config, model and dataset
     config = load_config(model_dir / "config.yaml")
     model = load_model(NextStepModel, model_dir, config)
+    model.to(config.device)
     dataset = read_dataset(config.dataset_name)
 
     log = get_logger("main", config.log_level)
