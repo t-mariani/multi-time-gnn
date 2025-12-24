@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 log = get_logger()
 
 
-def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:SummaryWriter=None):
+def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:"SummaryWriter"=None):
     model.train()
     # nodes = [1:N] TODO implement when subgraphs
     train_loader = DataLoader(dataset_train, batch_size=config.batch_size, shuffle=True)

@@ -25,8 +25,8 @@ if __name__ == "__main__":
             if torch.cuda.is_available()
             else "mps" if torch.backends.mps.is_available() else "cpu"
         )
-        
-    log = get_logger("main", config.log_level, file_path=str(dir_path / "training.log"))
+
+    log = get_logger("main", config.log_level, path_file=str(dir_path / "training.log"))
     log.debug(config)
 
     set_all_global_seed(config.seed)
