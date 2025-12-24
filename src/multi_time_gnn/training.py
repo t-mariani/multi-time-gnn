@@ -55,7 +55,6 @@ def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:"Sum
 
 
         _, loss_val = prediction_step(model, config, val_loader=val_loader, return_loss=True)
-        loss_val = loss_val.item()
         if writer:
             writer.add_scalar("Loss/Val_Loss", loss_val, i * total_step_each_epoch)
 
