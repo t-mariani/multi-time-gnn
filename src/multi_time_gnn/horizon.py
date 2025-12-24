@@ -57,7 +57,7 @@ def horizon_computing(model, test, config, y_mean, y_std, list_horizon=None):
     signal_horizons = rearrange(prediction_result, "T 1 N H -> H N T")
     signal_horizons_denorm = denormalize(signal_horizons, y_mean, y_std)
     cliped_capteur = min(10, config.N)  # To avoid too much plots
-    test = test[:cliped_capteur, :config.timepoints_input + config.nb_test ]  # NxT
+    test = test[:cliped_capteur, :config.timepoints_input + config.nb_test * config.batch_size]  # NxT
     signal_horizons_denorm = signal_horizons_denorm[:, :cliped_capteur, :]
     plot_prediction_horizons(test, signal_horizons_denorm, selected_horizons=list_horizon, show=False)
     plt.savefig(f"{config.output_dir}/horizon_plot.png", dpi=300)
