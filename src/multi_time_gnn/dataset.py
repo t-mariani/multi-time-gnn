@@ -35,6 +35,15 @@ def read_dataset(
     ).T  # Return size : NxT 
 
 
+def split_train_val_test(data, train_ratio=0.7, val_ratio=0.1):
+    n_timesteps = data.shape[1]
+    train_size = int(n_timesteps * train_ratio)
+    val_size = int(n_timesteps * val_ratio)
+    train = data[:, :train_size]
+    val = data[:, train_size : train_size + val_size]
+    test = data[:, train_size + val_size :]
+    return train, val, test
+
 class TimeSeriesDataset(Dataset):
     def __init__(self, data, config, length_prediction=1):
         self.data = data
@@ -64,3 +73,4 @@ def normalize(data, mean, std):
 def denormalize(data, mean, std):
     """Denormalize the data over all the dimension with mean and std"""
     return data * std[:, None] + mean[:, None]
+

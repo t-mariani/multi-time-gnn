@@ -4,7 +4,7 @@ import torch
 from torchinfo import summary
 
 from multi_time_gnn.model import NextStepModel
-from multi_time_gnn.dataset import normalize, read_dataset, find_mean_std, TimeSeriesDataset
+from multi_time_gnn.dataset import normalize, read_dataset, find_mean_std, TimeSeriesDataset, split_train_val_test
 from multi_time_gnn.training import train_loop
 from multi_time_gnn.visualization import pipeline_plotting
 from multi_time_gnn.utils import get_tensorboard_writer, load_config, get_logger, load_model, register_model, set_all_global_seed
@@ -33,13 +33,7 @@ if __name__ == "__main__":
 
     dataset = read_dataset(config.dataset_name)  # NxT
     n_capteur, nb_timestamp = dataset.shape
-    train_size = int(nb_timestamp * config.train_ratio)
-    val_size = int(nb_timestamp * (1 - config.train_ratio) // 2)
-    train, val, test = (
-        dataset[:, :train_size],
-        dataset[:, train_size:train_size+val_size],
-        dataset[:, train_size+val_size:]
-        )
+    train, val, test = split_train_val_test(dataset, train_ratio=config.train_ratio, val_ratio=(1 - config.train_ratio)/2)
 
     y_mean, y_std = find_mean_std(train)
     train = normalize(train, y_mean, y_std)
