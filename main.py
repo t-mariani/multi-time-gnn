@@ -72,6 +72,7 @@ if __name__ == "__main__":
     # Load best model
     log.info("Loading best model for evaluation...")
     best_model = load_model(NextStepModel, Path(config.output_dir), config)
+    best_model.to(config.device)
 
     log.info("Generating plots...")
     pipeline_plotting(best_model, test, y_mean, y_std, config)
