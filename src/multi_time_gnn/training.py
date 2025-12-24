@@ -28,11 +28,11 @@ def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:"Sum
         log_loss_val.append(loss.item())
         log_loss_ref.append(F.mse_loss(x_val.squeeze()[:, :, -1], y_val))
     ref_value = sum(log_loss_ref) / len(log_loss_ref)
-    log.info(f"Step 0: val: {(sum(log_loss_val) / len(log_loss_val)):.4f} - ref: {ref_value:.4f}")
+    log.info(f"Starting Epoch 0: val: {(sum(log_loss_val) / len(log_loss_val)):.4f} - ref: {ref_value:.4f}")
 
     best_val_loss = float("inf")
     total_step_each_epoch = min(len(train_loader), config.nb_iter_per_epoch if config.nb_iter_per_epoch else len(train_loader))
-    for i in range(1, config.n_epoch + 1):
+    for i in range(config.n_epoch):
         log_loss = []
         model.train()
         nb_iter = 0
@@ -58,7 +58,7 @@ def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:"Sum
         if writer:
             writer.add_scalar("Loss/Val_Loss", loss_val, i * total_step_each_epoch)
 
-        log.info(f"Step {i}: train: {(sum(log_loss) / len(log_loss)):.4f} - val: {loss_val:.4f} - ref: {ref_value:.4f}")
+        log.info(f"Epoch {i}: train: {(sum(log_loss) / len(log_loss)):.4f} - val: {loss_val:.4f} - ref: {ref_value:.4f}")
 
         # Log model with best val loss 
         if loss_val < best_val_loss :
