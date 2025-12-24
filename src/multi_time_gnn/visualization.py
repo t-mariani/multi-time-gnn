@@ -60,24 +60,24 @@ def plot_prediction(true, predicted_one_step, full_prediction, show=True):
       the multi-step ahead predictions.
     """
     N, T = true.shape
-    timepoints_input = T - predicted_one_step.shape[0] - 1
+    timepoints_input = T - predicted_one_step.shape[1] - 1
 
     time_true = np.arange(T)
     time_pred = np.arange(timepoints_input + 1, T)
 
-    fig = plt.figure(figsize=(15, 5 * N))
+    fig = plt.figure(figsize=(15 * timepoints_input / 1000, 5 * N))
     for i in range(N):
         plt.subplot(N, 1, i + 1)
         plt.plot(time_true, true[i, :], label="True", color="blue")
         plt.plot(
             time_pred,
-            predicted_one_step[:, i],
+            predicted_one_step[i, :],
             label="One-step Prediction",
             color="orange",
         )
         plt.plot(
             time_pred,
-            full_prediction[:, i],
+            full_prediction[i, :],
             label="Multi-step Prediction",
             color="green",
         )
@@ -125,6 +125,7 @@ def pipeline_plotting(model, test_data, mean, std, config, clip_N: int | None = 
     N, T = test_data.shape
     timepoints_input = config.timepoints_input
     n_steps = T - timepoints_input - 1
+    log.info(f" data shape N,T: {N,T} - timepoints_input: {timepoints_input} - n_steps: {n_steps}")
 
     # One-step ahead predictions
     predicted_one_step_points = prediction_step(
@@ -156,7 +157,7 @@ def pipeline_plotting(model, test_data, mean, std, config, clip_N: int | None = 
         full_prediction=full_prediction,
         show=False,
     )
-    fig_predict.savefig(config.output_dir + "/predictions.png")
+    fig_predict.savefig(config.output_dir + "/predictions.png", dpi=300)
 
     log.info(" * Plotting Graph Learned")
     fig_graph = plot_graph(
