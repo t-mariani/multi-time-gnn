@@ -31,7 +31,7 @@ def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:"Sum
     log.info(f"Step 0: val: {(sum(log_loss_val) / len(log_loss_val)):.4f} - ref: {ref_value:.4f}")
 
     best_val_loss = float("inf")
-    total_step_each_epoch = min(len(train_loader), config.nb_iter_per_epoch)
+    total_step_each_epoch = min(len(train_loader), config.nb_iter_per_epoch if config.nb_iter_per_epoch else len(train_loader))
     for i in range(1, config.n_epoch + 1):
         log_loss = []
         model.train()
@@ -61,8 +61,8 @@ def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:"Sum
         log.info(f"Step {i}: train: {(sum(log_loss) / len(log_loss)):.4f} - val: {loss_val:.4f} - ref: {ref_value:.4f}")
 
         # Log model with best val loss 
-        if best_val_loss > loss_val:
-            log.info(f"Save new model epoch {i}: best_val_loss ({best_val_loss}) < val_loss ({loss_val})")
+        if loss_val < best_val_loss :
+            log.info(f"Save new model epoch {i}: val_loss ({loss_val:.4f}) < best_val_loss ({best_val_loss:.4f})")
             best_val_loss = loss_val
             register_model(model, config=config)
             

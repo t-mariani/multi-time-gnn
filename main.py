@@ -7,7 +7,7 @@ from multi_time_gnn.model import NextStepModel
 from multi_time_gnn.dataset import normalize, read_dataset, find_mean_std, TimeSeriesDataset
 from multi_time_gnn.training import train_loop
 from multi_time_gnn.visualization import pipeline_plotting
-from multi_time_gnn.utils import get_tensorboard_writer, load_config, get_logger, register_model, set_all_global_seed
+from multi_time_gnn.utils import get_tensorboard_writer, load_config, get_logger, load_model, register_model, set_all_global_seed
 from multi_time_gnn.horizon import horizon_computing
 
 
@@ -75,13 +75,14 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         log.warning("Training interrupted by user.")
 
-    # log.info("Testing model...")
-    #ypred = test_step(model, test, config) # commented because plotting function already does testing
+    # Load best model
+    log.info("Loading best model for evaluation...")
+    best_model = load_model(NextStepModel, Path(config.output_dir), config)
 
     log.info("Generating plots...")
-    pipeline_plotting(model, test, y_mean, y_std, config)
+    pipeline_plotting(best_model, test, y_mean, y_std, config)
 
     log.info("Computing the horizon...")
-    horizon_computing(model, test, config, y_mean, y_std)
+    horizon_computing(best_model, test, config, y_mean, y_std)
 
     log.info("✅ Pipeline completed successfully")
