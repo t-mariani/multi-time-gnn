@@ -113,7 +113,7 @@ def plot_prediction_horizons(true, signal_horizons, selected_horizons, show=True
     plot_signal_prediction(time_true, true, "True")
     for h in selected_horizons:
         signal = signal_horizons[h - 1]  # h starts at 1, shape (N, T - timepoints_input)
-        plot_signal_prediction(time_pred, signal, f"Horizon {h}")
+        plot_signal_prediction(time_pred + (h - 1), signal, f"Horizon {h}")
 
     plt.tight_layout()
     if show:
