@@ -84,7 +84,7 @@ def plot_prediction(true, predicted_one_step, full_prediction, show=True):
     time_true = np.arange(T)
     time_pred = np.arange(timepoints_input + 1, T)
 
-    fig = plt.figure(figsize=(15 * timepoints_input / 1000, 5 * N))
+    fig = plt.figure(figsize=(15 * T / 1000, 5 * N))
     plot_signal_prediction(time_true, true, "True", "tab:blue")
     plot_signal_prediction(time_pred, predicted_one_step, "One-step Prediction", "tab:orange")
     plot_signal_prediction(time_pred, full_prediction, "Multi-step Prediction", "tab:green")
@@ -109,7 +109,7 @@ def plot_prediction_horizons(true, signal_horizons, selected_horizons, show=True
     time_true = np.arange(T)
     time_pred = np.arange(timepoints_input + 1, T)
 
-    fig = plt.figure(figsize=(15 * timepoints_input / 1000, 5 * N))
+    fig = plt.figure(figsize=(15 * T / 1000, 5 * N))
     plot_signal_prediction(time_true, true, "True", "tab:blue")
     for h in selected_horizons:
         signal = signal_horizons[h - 1]  # h starts at 1, shape (N, T - timepoints_input - 1)
