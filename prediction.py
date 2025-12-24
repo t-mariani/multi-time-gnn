@@ -22,7 +22,7 @@ if __name__ == "__main__":
     train, _, test = split_train_val_test(dataset, train_ratio=config.train_ratio, val_ratio=(1 - config.train_ratio)/2)
 
     y_mean, y_std = find_mean_std(train)
-    test = normalize(test)
+    test = normalize(test, y_mean, y_std)
 
     log.info("Generating plots...")
     pipeline_plotting(model, test, y_mean, y_std, config)
