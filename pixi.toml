@@ -23,6 +23,7 @@ pyaml = ">=25.7.0,<26"
 python-box = ">=7.3.2,<8"
 tqdm = ">=4.67.1,<5"
 matplotlib = ">=3.10.7,<4"
+tensorboard = ">=2.20.0,<3"
 
 [pypi-dependencies]
 multi_time_gnn = { path = ".", editable = true}

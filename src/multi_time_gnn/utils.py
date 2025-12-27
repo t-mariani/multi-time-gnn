@@ -1,11 +1,14 @@
 from pathlib import Path
+import random
 from typing import Literal
 import logging
 from datetime import datetime
 
+import numpy as np
 import torch
 import yaml
 from box import Box
+from torch.utils.tensorboard import SummaryWriter
 
 
 def load_config(config_path="config.yaml", return_type: Literal["dict", "box"] = "box"):
@@ -20,7 +23,7 @@ def load_config(config_path="config.yaml", return_type: Literal["dict", "box"] =
         raise ValueError("return_type not supported, use either 'dict' or 'box'")
 
 
-def get_logger(name: str = "main", level: int = None) -> logging.Logger:
+def get_logger(name: str = "main", level: int = None, path_file:str=None) -> logging.Logger:
     logger = logging.getLogger(name)
     if level is not None:
         logger.setLevel(level)
@@ -31,10 +34,16 @@ def get_logger(name: str = "main", level: int = None) -> logging.Logger:
         ch.setFormatter(formatter)
         logger.addHandler(ch)
 
+        if path_file is not None:
+            fh = logging.FileHandler(path_file)
+            formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+            fh.setFormatter(formatter)
+            logger.addHandler(fh)
+
     return logger
 
 
-def register_model(model: torch.nn.Module, config: Box):
+def register_model(model: torch.nn.Module, config: Box ):
     dir_path = Path(config.output_dir)
     dir_path.mkdir(parents=True, exist_ok=True)
 
@@ -62,3 +71,18 @@ def get_latest_dir(base_path: Path) -> Path:
 
     latest_subdir = max(subdirs, key=lambda d: d.stat().st_mtime)
     return latest_subdir
+
+
+def set_all_global_seed(seed:int):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+
+def get_tensorboard_writer(config):
+    """Creates a TensorBoard SummaryWriter in the output directory"""
+    # Saves logs to: saved_models/YYYYMMDD-HHMMSS/runs/
+    log_dir = Path(config.output_dir) / config.tensorboard_dir
+    return SummaryWriter(log_dir=log_dir)
