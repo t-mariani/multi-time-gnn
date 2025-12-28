@@ -38,6 +38,7 @@ def horizon_computing(model, test, config, y_mean, y_std, list_horizon=None):
                 loss_result_norm[k, j] = loss_norm
                 # we use the prediction to guess the next step
                 x = torch.concat((x[:, :, :, :-1], y_pred), dim=-1) 
+            assert x.shape[-1] >= max_horizon, "The input sequence is too short compared to the max horizon"
             prediction_result_list.append(x[:, :, :, -max_horizon:])
 
             if k >= config.nb_test - 1:
