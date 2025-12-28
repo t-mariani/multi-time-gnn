@@ -1,5 +1,6 @@
 # Dataset 
 dataset_name : solar
+normalization_method : zscore # zscore, minmax, none
 
 # Architecture Hyperparemeter 
 m : 4 # Number of graph convolution module AND temporal conv module 

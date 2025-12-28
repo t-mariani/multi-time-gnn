@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from multi_time_gnn.dataset import find_mean_std, read_dataset, normalize, split_train_val_test
+from multi_time_gnn.dataset import find_mean_std, get_normalizer, read_dataset, normalize, split_train_val_test
 from multi_time_gnn.horizon import horizon_computing
 from multi_time_gnn.model import NextStepModel
 from multi_time_gnn.visualization import pipeline_plotting
@@ -23,11 +23,11 @@ if __name__ == "__main__":
 
     train, _, test = split_train_val_test(dataset, train_ratio=config.train_ratio, val_ratio=(1 - config.train_ratio)/2)
 
-    y_mean, y_std = find_mean_std(train)
-    test = normalize(test, y_mean, y_std)
+    normalizer = get_normalizer(config.normalization_method, train)
+    test = normalizer.normalize(test)
 
     log.info("Generating plots...")
-    pipeline_plotting(model, test, y_mean, y_std, config)
+    pipeline_plotting(model, test, normalizer, config)
 
     log.info("Computing the horizon...")
-    horizon_computing(model, test, config, y_mean, y_std, list_horizon=config.list_horizon)
+    horizon_computing(model, test, config, normalizer, list_horizon=config.list_horizon)
