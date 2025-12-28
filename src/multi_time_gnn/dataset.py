@@ -1,10 +1,12 @@
 from abc import abstractmethod
 from typing import Literal
+
 from einops import rearrange
 import torch
 import numpy as np
-from multi_time_gnn.utils import get_logger
 from torch.utils.data import Dataset
+
+from multi_time_gnn.utils import get_logger
 
 log = get_logger()
 

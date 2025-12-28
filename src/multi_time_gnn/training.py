@@ -58,7 +58,7 @@ def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:"Sum
 
         _, loss_val = prediction_step(model, config, val_loader=val_loader, return_loss=True)
         if writer:
-            writer.add_scalar("Loss/Val_Loss", loss_val, i * total_step_each_epoch)
+            writer.add_scalar("Loss/Val_Loss", loss_val, (i + 1) * total_step_each_epoch)
 
         log.info(f"Epoch {i}: train: {(sum(log_loss) / len(log_loss)):.4f} - val: {loss_val:.4f} - ref: {ref_value:.4f}")
 
