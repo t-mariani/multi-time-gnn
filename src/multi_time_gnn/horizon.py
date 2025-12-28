@@ -29,11 +29,11 @@ def horizon_computing(model, test, config, y_mean, y_std, list_horizon=None):
         for k, (x, y) in tqdm(enumerate(dataloader_test), total=min(len(dataloader_test), config.nb_test) - 1):
             for j in range(max_horizon):
                 x = x.to(config.device)
-                if y.ndim() == 3:
+                if y.ndim == 3:
                     y_true = y[:, :, j].to(config.device)
-                elif y.ndim() == 2:
+                elif y.ndim == 2:
                     y_true = y.to(config.device)
-                    
+
                 y_pred, loss_norm = model(x, y_true)
                 # without normalization
                 y_denorm_pred = denormalize(y_pred.squeeze().to("cpu").T, y_mean, y_std).T
