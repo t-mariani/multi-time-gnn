@@ -30,4 +30,4 @@ if __name__ == "__main__":
     pipeline_plotting(model, test, y_mean, y_std, config)
 
     log.info("Computing the horizon...")
-    horizon_computing(model, test, config, y_mean, y_std)
+    horizon_computing(model, test, config, y_mean, y_std, list_horizon=config.list_horizon)

@@ -31,6 +31,7 @@ seed : 42
 log_each : 1
 log_level : INFO # DEBUG, INFO, WARNING, ERROR
 tensorboard_dir: "runs"
+list_horizon: [3, 6, 12, 24]
 
 # Test
 nb_test : 40

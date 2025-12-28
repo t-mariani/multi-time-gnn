@@ -78,6 +78,6 @@ if __name__ == "__main__":
     pipeline_plotting(best_model, test, y_mean, y_std, config)
 
     log.info("Computing the horizon...")
-    horizon_computing(best_model, test, config, y_mean, y_std)
+    horizon_computing(best_model, test, config, y_mean, y_std, list_horizon=config.list_horizon)
 
     log.info("✅ Pipeline completed successfully")
