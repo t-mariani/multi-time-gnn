@@ -2,7 +2,7 @@
 from einops import rearrange
 from matplotlib import pyplot as plt
 from multi_time_gnn.utils import get_logger
-from multi_time_gnn.dataset import TimeSeriesDataset, denormalize
+from multi_time_gnn.dataset import TimeSeriesDataset, denormalize, find_mean_std
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import torch
@@ -38,8 +38,8 @@ def horizon_computing(model, test, config, y_mean, y_std, list_horizon=None):
                 # without normalization
                 y_denorm_pred = denormalize(y_pred.squeeze().to("cpu").T, y_mean, y_std).T
                 y_denorm_true = denormalize(y_true.squeeze().to("cpu").T, y_mean, y_std).T
-                loss_result_denorm[k, j] = F.mse_loss(y_denorm_pred, y_denorm_true)
-                loss_result_norm[k, j] = loss_norm
+                loss_result_denorm[k, j] = torch.sqrt(F.mse_loss(y_denorm_pred, y_denorm_true))
+                loss_result_norm[k, j] = torch.sqrt(loss_norm)
                 # we use the prediction to guess the next step
                 x = torch.concat((x[:, :, :, 1:], y_pred), dim=-1) 
             assert x.shape[-1] >= max_horizon, "The input sequence is too short compared to the max horizon"
@@ -47,10 +47,10 @@ def horizon_computing(model, test, config, y_mean, y_std, list_horizon=None):
 
             if k >= config.nb_test - 1:
                 break
-    loss_horizon_norm = loss_result_norm.mean(dim=0)
-    loss_horizon_denorm = loss_result_denorm.mean(dim=0)
-    string_norm = "Horizon Normalized MSE: "
-    string_denorm = "Horizon Denormalized MSE: "
+    loss_horizon_norm = loss_result_norm.mean(dim=0) / test.std()  # Normalize by the std of the test set as in the paper
+    loss_horizon_denorm = loss_result_denorm.mean(dim=0) 
+    string_norm = "Horizon Normalized RMSE: "
+    string_denorm = "Horizon Denormalized RMSE: "
     for h in list_horizon:
         string_norm += f"{h}: {loss_horizon_norm[h-1].item():.3f}  "
         string_denorm += f"{h}: {loss_horizon_denorm[h-1].item():.3f}  "
