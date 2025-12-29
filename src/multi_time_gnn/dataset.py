@@ -2,16 +2,18 @@ from typing import Literal
 from einops import rearrange
 import torch
 import numpy as np
+import mne
 from multi_time_gnn.utils import get_logger
 from torch.utils.data import Dataset
 
 log = get_logger()
 
-available_datasets = ["electricity", "traffic", "solar", "exchange"]
+available_datasets = ["electricity", "traffic", "solar", "exchange", "eeg"]
 
 
 def read_dataset(
-    which: Literal["electricity", "traffic", "solar", "exchange"],
+    which: Literal["electricity", "traffic", "solar", "exchange", "eeg"],
+    path_eeg = None,
 ) -> list[list[float]]:
     if which == "electricity":
         path = "../multivariate-time-series-data/electricity/electricity.txt"
@@ -21,15 +23,17 @@ def read_dataset(
         path = "../multivariate-time-series-data/solar-energy/solar_AL.txt"
     elif which == "exchange":
         path = "../multivariate-time-series-data/exchange_rate/exchange_rate.txt"
-    else:
+    elif not path_eeg:
         raise ValueError(
             f"Unknown dataset: {which}, available are {available_datasets}"
         )
-
-    with open(path, "r") as f:
-        data = f.readlines()
-    data = [list(map(float, line.strip().split(","))) for line in data]
-
+    if not path_eeg:
+        with open(path, "r") as f:
+            data = f.readlines()
+            data = [list(map(float, line.strip().split(","))) for line in data]
+    else:
+        raw = mne.io.read_raw_bdf(path_eeg, preload=True)
+        data = raw.get_data().T
     return np.array(
         data
     ).T  # Return size : NxT 
@@ -73,4 +77,3 @@ def normalize(data, mean, std):
 def denormalize(data, mean, std):
     """Denormalize the data over all the dimension with mean and std"""
     return data * std[:, None] + mean[:, None]
-

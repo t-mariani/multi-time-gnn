@@ -18,6 +18,9 @@ pyyaml = ">=5.3.1"  # Note: The package is named `pyyaml`, not `pyaml`
 python-box = ">=7.3.2,<8"
 tqdm = ">=4.67.1,<5"
 matplotlib = ">=3.10.7,<4"
+mne = "^1.11.0"
+pybids = "^0.21.0"
+tensorboard = "^2.20.0"
 
 [build-system]
 requires = ["poetry-core"]
