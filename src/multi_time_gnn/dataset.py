@@ -1,7 +1,6 @@
 from abc import abstractmethod
 from typing import Literal
 
-from einops import rearrange
 import torch
 import numpy as np
 import mne
