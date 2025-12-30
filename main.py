@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     set_all_global_seed(config.seed)
 
-    dataset = read_dataset(config.dataset_name)  # NxT
+    dataset = read_dataset(config.dataset_name, path_eeg=config.path_eeg)  # NxT
     n_capteur, nb_timestamp = dataset.shape
     train, val, test = split_train_val_test(dataset, train_ratio=config.train_ratio, val_ratio=(1 - config.train_ratio)/2)
 
