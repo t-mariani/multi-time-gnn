@@ -16,7 +16,7 @@ if __name__ == "__main__":
     config = load_config(model_dir / "config.yaml")
     model = load_model(NextStepModel, model_dir, config)
     model.to(config.device)
-    dataset = read_dataset(config.dataset_name)
+    dataset = read_dataset(config.dataset_name, config.path_eeg)
 
     log = get_logger("main", config.log_level)
     log.debug(config)
