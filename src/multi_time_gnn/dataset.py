@@ -27,7 +27,7 @@ def read_dataset(
         path = "../multivariate-time-series-data/exchange_rate/exchange_rate.txt"
     elif not path_eeg:
         raise ValueError(
-            f"Unknown dataset: {which}, available are {available_datasets}"
+            f"Unknown dataset: {which}, available are {available_datasets}, nor provide a valid path_eeg {path_eeg} for eeg data."
         )
     if not path_eeg:
         with open(path, "r") as f:
