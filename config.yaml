@@ -1,5 +1,6 @@
 # Dataset 
-dataset_name : solar
+dataset_name : eeg
+path_eeg: ../ds002778/sub-hc2/ses-hc/eeg/sub-hc2_ses-hc_task-rest_eeg.bdf # put None if you don't want to use eeg otherwise the path
 
 # Architecture Hyperparemeter 
 m : 4 # Number of graph convolution module AND temporal conv module 
