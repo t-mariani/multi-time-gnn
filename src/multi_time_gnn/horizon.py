@@ -48,7 +48,7 @@ def horizon_computing(model, test, config, normalizer:Normalizer, list_horizon=N
                 break
     
     loss_horizon_norm = loss_result_norm.mean(dim=0) 
-    loss_horizon_denorm = loss_result_denorm.mean(dim=0) / test.std()  # Normalize by the std of the test set as in the paper
+    loss_horizon_denorm = loss_result_denorm.mean(dim=0) #/ test.std()  # Normalize by the std of the test set as in the paper
     string_norm = "Horizon Normalized RMSE: "
     string_denorm = "Horizon Denormalized RMSE: "
     for h in list_horizon:
