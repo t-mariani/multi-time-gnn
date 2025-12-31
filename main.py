@@ -9,6 +9,7 @@ from multi_time_gnn.training import train_loop
 from multi_time_gnn.visualization import pipeline_plotting
 from multi_time_gnn.utils import get_tensorboard_writer, load_config, get_logger, load_model, register_model, set_all_global_seed
 from multi_time_gnn.horizon import horizon_computing
+from multi_time_gnn.preprocessing import preprocess_eeg
 
 
 if __name__ == "__main__":
@@ -32,6 +33,14 @@ if __name__ == "__main__":
     set_all_global_seed(config.seed)
 
     dataset = read_dataset(config.dataset_name, path_eeg=config.path_eeg)  # NxT
+
+    if config.preprocessing and config.dataset_name == "eeg":
+        log.info("Preprocessing EEG data: high-pass filtering and resampling...")
+        dataset = preprocess_eeg(dataset, config)
+    elif config.preprocessing:
+        log.warning("Preprocessing is only implemented for EEG dataset currently.")
+    
+
     n_capteur, nb_timestamp = dataset.shape
     train, val, test = split_train_val_test(dataset, train_ratio=config.train_ratio, val_ratio=(1 - config.train_ratio)/2)
 
