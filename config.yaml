@@ -19,6 +19,7 @@ val_batch_size : 128
 
 # Test
 nb_test : 40
+list_horizon: [3,6,12,24]
 
 MTGNN:
   # Architecture Hyperparemeter 
