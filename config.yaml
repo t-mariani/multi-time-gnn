@@ -1,6 +1,7 @@
 # Dataset 
 dataset_name : eeg
 path_eeg: ../ds002778/sub-hc2/ses-hc/eeg/sub-hc2_ses-hc_task-rest_eeg.bdf # put None if you don't want to use eeg otherwise the path
+normalization_method : zscore # zscore, minmax, none
 
 # Architecture Hyperparemeter 
 m : 4 # Number of graph convolution module AND temporal conv module 
@@ -19,7 +20,6 @@ timepoints_input: 168
 # Training 
 batch_size : 16
 val_batch_size : 128
-move_all_device: True
 n_epoch : 50
 train_ratio : 0.9
 nb_iter_per_epoch : 200 # if 0 : everything 
@@ -32,6 +32,7 @@ seed : 42
 log_each : 1
 log_level : INFO # DEBUG, INFO, WARNING, ERROR
 tensorboard_dir: "runs"
+list_horizon: [3, 6, 12, 24]
 
 # Test
 nb_test : 40

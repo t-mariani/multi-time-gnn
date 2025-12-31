@@ -16,7 +16,6 @@ log = get_logger()
 def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:"SummaryWriter"=None):
     model.train()
     # nodes = [1:N] TODO implement when subgraphs
-    train_loader = DataLoader(dataset_train, batch_size=config.batch_size, shuffle=True)
     val_loader = DataLoader(dataset_val, batch_size=config.val_batch_size, shuffle=False)
     model.eval()
     log_loss_val = []
@@ -31,8 +30,11 @@ def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:"Sum
     log.info(f"Starting Epoch 0: val: {(sum(log_loss_val) / len(log_loss_val)):.4f} - ref: {ref_value:.4f}")
 
     best_val_loss = float("inf")
-    total_step_each_epoch = min(len(train_loader), config.nb_iter_per_epoch if config.nb_iter_per_epoch else len(train_loader))
     for i in range(config.n_epoch):
+        # Reshuffle the training data each epoch
+        train_loader = DataLoader(dataset_train, batch_size=config.batch_size, shuffle=True)
+        total_step_each_epoch = min(len(train_loader), config.nb_iter_per_epoch if config.nb_iter_per_epoch else len(train_loader))
+
         log_loss = []
         model.train()
         nb_iter = 0
@@ -56,7 +58,7 @@ def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:"Sum
 
         _, loss_val = prediction_step(model, config, val_loader=val_loader, return_loss=True)
         if writer:
-            writer.add_scalar("Loss/Val_Loss", loss_val, i * total_step_each_epoch)
+            writer.add_scalar("Loss/Val_Loss", loss_val, (i + 1) * total_step_each_epoch)
 
         log.info(f"Epoch {i}: train: {(sum(log_loss) / len(log_loss)):.4f} - val: {loss_val:.4f} - ref: {ref_value:.4f}")
 

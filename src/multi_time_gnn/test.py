@@ -1,7 +1,7 @@
 import torch
 from tqdm import tqdm
-import numpy as np
 from torch.utils.data import DataLoader
+
 from multi_time_gnn.dataset import TimeSeriesDataset
 from multi_time_gnn.utils import get_logger
 

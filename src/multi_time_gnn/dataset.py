@@ -1,10 +1,12 @@
+from abc import abstractmethod
 from typing import Literal
-from einops import rearrange
+
 import torch
 import numpy as np
 import mne
-from multi_time_gnn.utils import get_logger
 from torch.utils.data import Dataset
+
+from multi_time_gnn.utils import get_logger
 
 log = get_logger()
 
@@ -25,7 +27,7 @@ def read_dataset(
         path = "../multivariate-time-series-data/exchange_rate/exchange_rate.txt"
     elif not path_eeg:
         raise ValueError(
-            f"Unknown dataset: {which}, available are {available_datasets}"
+            f"Unknown dataset: {which}, available are {available_datasets}, nor provide a valid path_eeg {path_eeg} for eeg data."
         )
     if not path_eeg:
         with open(path, "r") as f:
@@ -65,15 +67,55 @@ class TimeSeriesDataset(Dataset):
         return torch.from_numpy(x).float(), torch.from_numpy(y).float()
 
 
-def find_mean_std(train) -> tuple[np.ndarray, np.ndarray]:
-    """Find the mean and the standard devitation for all the dimension of the training"""
-    return train.mean(axis=1), train.std(axis=1)
+class Normalizer:
+    """Abstract Normalizer class"""
+    @abstractmethod
+    def normalize(self, data):
+        pass
+    
+    @abstractmethod
+    def denormalize(self, data):
+        pass
+    
+class ZscoreNormalizer(Normalizer):
+    """Z-score Normalizer, normalizes data to have mean 0 and std 1"""
+    def __init__(self, data_fit: np.ndarray):
+        """data_fit : np.ndarray of shape (N, T) used to compute mean and std"""
+        self.mean = data_fit.mean(axis=1)
+        self.std = data_fit.std(axis=1)
+    
+    def normalize(self, data):
+        return (data - self.mean[:, None]) / self.std[:, None]
+    
+    def denormalize(self, data):
+        return data * self.std[:, None] + self.mean[:, None]
+    
+class MinMaxNormalizer(Normalizer):
+    def __init__(self, data_fit: np.ndarray):
+        """data_fit : np.ndarray of shape (N, T) used to compute min and max"""
+        self.data_min = data_fit.min(axis=1)
+        self.data_max = data_fit.max(axis=1)
+    
+    def normalize(self, data):
+        return (data - self.data_min[:, None]) / (self.data_max[:, None] - self.data_min[:, None])
+    
+    def denormalize(self, data):
+        return data * (self.data_max[:, None] - self.data_min[:, None]) + self.data_min[:, None]
+    
 
-def normalize(data, mean, std):
-    """Normalize the data over all the dimension with mean and std"""
-    return (data - mean[:, None]) / std[:, None]
-
-
-def denormalize(data, mean, std):
-    """Denormalize the data over all the dimension with mean and std"""
-    return data * std[:, None] + mean[:, None]
+class NoNormalizer(Normalizer):
+    def normalize(self, data):
+        return data
+    
+    def denormalize(self, data):
+        return data
+    
+def get_normalizer(name: str, data_fit: np.ndarray) -> Normalizer:
+    if name == "zscore":
+        return ZscoreNormalizer(data_fit)
+    elif name == "minmax":
+        return MinMaxNormalizer(data_fit)
+    elif name == "none":
+        return NoNormalizer()
+    else:
+        raise ValueError(f"Unknown normalizer: {name}, available are 'zscore', 'minmax', 'none'")
