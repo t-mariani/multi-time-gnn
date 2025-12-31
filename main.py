@@ -4,7 +4,7 @@ import torch
 from torchinfo import summary
 
 from multi_time_gnn.model import NextStepModel
-from multi_time_gnn.dataset import normalize, read_dataset, find_mean_std, TimeSeriesDataset, split_train_val_test
+from multi_time_gnn.dataset import get_normalizer, read_dataset, TimeSeriesDataset, split_train_val_test
 from multi_time_gnn.training import train_loop
 from multi_time_gnn.visualization import pipeline_plotting
 from multi_time_gnn.utils import get_tensorboard_writer, load_config, get_logger, load_model, register_model, set_all_global_seed
@@ -44,10 +44,10 @@ if __name__ == "__main__":
     n_capteur, nb_timestamp = dataset.shape
     train, val, test = split_train_val_test(dataset, train_ratio=config.train_ratio, val_ratio=(1 - config.train_ratio)/2)
 
-    y_mean, y_std = find_mean_std(train)
-    train = normalize(train, y_mean, y_std)
-    val = normalize(val, y_mean, y_std)
-    test = normalize(test, y_mean, y_std)
+    normalizer = get_normalizer(config.normalization_method, train)
+    train = normalizer.normalize(train)
+    val = normalizer.normalize(val)
+    test = normalizer.normalize(test)
     dataset_train, dataset_val = TimeSeriesDataset(train, config), TimeSeriesDataset(val, config)
     log.info(f"Dataset '{config.dataset_name}' shape : {n_capteur, nb_timestamp}")
     # Update config with dataset specific parameters
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     )
 
     writer = get_tensorboard_writer(config)
-    log.info(f" TensorBoard logging enabled in: {config.output_dir}/{config.tensorboard_dir}")
+    log.info(f"TensorBoard logging enabled in: {config.output_dir}/{config.tensorboard_dir}")
 
     log.info("Starting training...")
     try:
@@ -84,9 +84,9 @@ if __name__ == "__main__":
     best_model.to(config.device)
 
     log.info("Generating plots...")
-    pipeline_plotting(best_model, test, y_mean, y_std, config)
+    pipeline_plotting(best_model, test, normalizer, config)
 
     log.info("Computing the horizon...")
-    horizon_computing(best_model, test, config, y_mean, y_std)
+    horizon_computing(best_model, test, config, normalizer, list_horizon=config.list_horizon)
 
     log.info("✅ Pipeline completed successfully")

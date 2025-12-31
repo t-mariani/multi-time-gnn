@@ -3,7 +3,7 @@ from matplotlib.colors import TABLEAU_COLORS
 import numpy as np
 import torch
 
-from multi_time_gnn.dataset import denormalize
+from multi_time_gnn.dataset import Normalizer
 from multi_time_gnn.test import predict_multi_step, prediction_step
 from multi_time_gnn.utils import get_logger
 
@@ -139,15 +139,14 @@ def plot_graph(adj_matrix, show=True):
     return fig
 
 
-def pipeline_plotting(model, test_data, mean, std, config, clip_N: int | None = 10):
+def pipeline_plotting(model, test_data, normalizer:Normalizer, config, clip_N: int | None = 10):
     """
     Generates predictions using the model and plots the results.
 
     Parameters:
     - model: trained model
     - test_data: np.ndarray of shape (N, T), the test time series data.
-    - mean : np.ndarray of shape (N,) for mean of train set used to normalize test_data
-    - std : np.ndarray of shape (N,) for std of train set used to normalize test_data
+    - mean : Normalizer object used for denormalization
     - config : configuration
     - clip_N: int, number of nodes to visualize (default is 10)
     """
@@ -171,9 +170,9 @@ def pipeline_plotting(model, test_data, mean, std, config, clip_N: int | None = 
     )  # Shape (N, n_steps)
     log.info(f"full_prediction shape : {full_prediction.shape}")
 
-    predicted_one_step_points = denormalize(predicted_one_step_points, mean, std)
-    full_prediction = denormalize(full_prediction, mean, std)
-    test_data = denormalize(test_data, mean, std)
+    predicted_one_step_points = normalizer.denormalize(predicted_one_step_points)
+    full_prediction = normalizer.denormalize(full_prediction)
+    test_data = normalizer.denormalize(test_data)
     if clip_N is not None:
         predicted_one_step_points = predicted_one_step_points[:clip_N,:]
         full_prediction = full_prediction[:clip_N,:] 

@@ -1,4 +1,4 @@
-from einops import rearrange, repeat
+from einops import rearrange
 import torch
 from torch import nn
 from torch.nn.functional import tanh, relu, sigmoid
