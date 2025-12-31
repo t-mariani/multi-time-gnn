@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 from torchinfo import summary
 
-from multi_time_gnn.model import NextStepModel
+from multi_time_gnn.model import get_model
 from multi_time_gnn.dataset import normalize, read_dataset, find_mean_std, TimeSeriesDataset, split_train_val_test
 from multi_time_gnn.training import train_loop
 from multi_time_gnn.visualization import pipeline_plotting
@@ -20,12 +20,6 @@ if __name__ == "__main__":
     dir_path.mkdir(parents=True, exist_ok=True)
     config.output_dir = str(dir_path)
 
-    if config.device == "auto":
-        config.device = (
-            "cuda"
-            if torch.cuda.is_available()
-            else "mps" if torch.backends.mps.is_available() else "cpu"
-        )
 
     log = get_logger("main", config.log_level, path_file=str(dir_path / "training.log"))
     log.debug(config)
@@ -46,21 +40,28 @@ if __name__ == "__main__":
     # Update config with dataset specific parameters
     config.N = n_capteur
 
-    model = NextStepModel(config)
-    model.to(config.device)
+    model = get_model(config)
+    if config.model_kind == "MTGNN":
+        if config.device == "auto":
+            config.device = (
+                "cuda"
+                if torch.cuda.is_available()
+                else "mps" if torch.backends.mps.is_available() else "cpu"
+            )
+        model.to(config.device)
 
-    summary(
-        model,
-        depth=5,
-        input_size=(1, 1, n_capteur, config.timepoints_input),
-        device=config.device
-    )
+        summary(
+            model,
+            depth=5,
+            input_size=(1, 1, n_capteur, config.timepoints_input),
+            device=config.device
+        )
 
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=config.learning_rate,
-        weight_decay=config.weight_decay,
-    )
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=config.learning_rate,
+            weight_decay=config.weight_decay,
+        )
 
     writer = get_tensorboard_writer(config)
     log.info(f" TensorBoard logging enabled in: {config.output_dir}/{config.tensorboard_dir}")

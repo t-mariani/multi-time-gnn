@@ -1,8 +1,11 @@
 from einops import rearrange, repeat
+import numpy as np
 import torch
 from torch import nn
 from torch.nn.functional import tanh, relu, sigmoid
 from torch.nn import MSELoss
+from statsmodels.tsa.ar_model import AutoReg
+from sklearn.metrics import mean_squared_error
 
 from multi_time_gnn.utils import get_logger
 
@@ -200,7 +203,28 @@ class OutputModule(nn.Module):
         return x
 
 
-class NextStepModel(nn.Module):
+def get_model(config):
+    if config.model_kind == "MTGNN":
+        return NextStepModelMTGNN(config)
+    elif config.model_kind == "statistical":
+        return NextStepModelAR()
+
+class NextStepModelAR():
+    def __init__(self):
+        pass
+ 
+    def forward(self, input, lags, y=None):
+        result = np.empty((input.shape[0]))
+        for chanel_number, time_serie in enumerate(input):
+            model = AutoReg(time_serie, lags=lags[chanel_number], trend='c')
+            model_fit = model.fit()
+            pred = model_fit.predict(start=len(time_serie), end=len(time_serie), dynamic=False)
+            result.append(pred)
+
+
+
+
+class NextStepModelMTGNN(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
