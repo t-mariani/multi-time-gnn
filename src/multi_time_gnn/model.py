@@ -1,4 +1,4 @@
-from einops import rearrange, repeat
+from einops import rearrange
 import numpy as np
 import torch
 from torch import nn
