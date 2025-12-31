@@ -81,11 +81,11 @@ def train_loop_statistical(model, dataset_train, dataset_val, config, writer:"Su
     dataset_val = Subset(dataset_val, indices)  # we take just a subset of the dataset to speed up the process
     val_loader = DataLoader(dataset_val, batch_size=1, shuffle=False)
     nb_lags = config.lag_max - config.lag_min
-    loss_val_with_lags = np.empty((nb_lags, config.N))
+    loss_val_with_lags = torch.empty((nb_lags, config.N))
 
     log.info(f"Finding the best lag for our statistical model...")
     for nb_lag, lag in tqdm(enumerate(range(config.lag_min, config.lag_max))):
-        loss_lag = np.zeros(config.N)
+        loss_lag = torch.zeros((config.N))
         for x_val, y_val in val_loader:
             x_val = x_val.to(config.device)
             y_val = y_val.to(config.device)
@@ -93,6 +93,6 @@ def train_loop_statistical(model, dataset_train, dataset_val, config, writer:"Su
             loss_lag += loss
         loss_val_with_lags[nb_lag, :] = loss_lag
     # Keeping the best model
-    model.best_lags = np.argmin(loss_val_with_lags, axis=0)
+    model.best_lags = torch.argmin(loss_val_with_lags, axis=0).numpy()
     log.info(f"Save new model")
     register_model(model, config=config)

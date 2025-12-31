@@ -205,9 +205,9 @@ class OutputModule(nn.Module):
 
 def get_model(config):
     if config.model_kind == "MTGNN":
-        return NextStepModelMTGNN(config)
+        return NextStepModelMTGNN
     elif config.model_kind == "statistical":
-        return NextStepModelAR(config)
+        return NextStepModelAR
 
 
 class NextStepModelMTGNN(nn.Module):
@@ -297,10 +297,9 @@ class NextStepModelMTGNN(nn.Module):
 class NextStepModelAR():
     def __init__(self, config):
         self.best_lags = np.ones(config.N, dtype=np.int8)
- 
-    def __call__(self, input, y=None, lags=None):
+
+    def inference(self, input, y, lags):
         input = input.numpy().squeeze()
-        y = y.numpy().squeeze()
         if lags is None:
             lags = self.best_lags
         result = np.empty((input.shape[0]))
@@ -310,6 +309,37 @@ class NextStepModelAR():
             pred = model_fit.predict(start=len(time_serie), end=len(time_serie), dynamic=False)
             result[chanel_number] = pred.item()
         if y is None:
-            return result
+            return torch.from_numpy(result), None
         else:
-            return result, (result - y) ** 2
+            y = y.numpy().squeeze()
+            return torch.from_numpy(result), torch.from_numpy((result - y) ** 2)
+
+
+    def __call__(self, input, y=None, lags=None, one_loss=True):
+        if len(input.squeeze().shape) > 2:
+            nb_predictions = input.shape[0]
+            mean_loss = torch.zeros((input.shape[-2]))
+            results = torch.empty((nb_predictions, input.shape[-2]))
+            for k in range(nb_predictions):
+                if y is None:
+                    result = self.inference(input[k], y, lags)
+                else:
+                    result, loss = self.inference(input[k], y[k], lags)
+                    mean_loss += loss
+                results[k, :] = result
+            if y is not None:
+                mean_loss = mean_loss / nb_predictions
+                if one_loss:
+                    mean_loss = mean_loss.mean()
+                return results, mean_loss.mean()
+            else:
+                return results, None
+        else:
+            return self.inference(input, y, lags)
+
+
+    def to(self, *args):
+        pass
+
+    def eval(self):
+        pass

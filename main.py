@@ -40,7 +40,8 @@ if __name__ == "__main__":
     # Update config with dataset specific parameters
     config.N = n_capteur
 
-    model = get_model(config)
+    Model = get_model(config)
+    model = Model(config)
     if config.model_kind == "MTGNN":
         if config.device == "auto":
             config.device = (
@@ -77,7 +78,7 @@ if __name__ == "__main__":
 
     # Load best model
     log.info("Loading best model for evaluation...")
-    best_model = load_model(NextStepModel, Path(config.output_dir), config)
+    best_model = load_model(get_model(config), Path(config.output_dir), config)
     best_model.to(config.device)
 
     log.info("Generating plots...")

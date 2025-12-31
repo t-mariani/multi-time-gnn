@@ -48,6 +48,11 @@ def predict_multi_step(model, input_sequence, n_steps):
         log.info("Multi-step prediction:")
         for _ in tqdm(range(n_steps)):
             y_pred, _ = model(input_seq)
+
+            # for the statistical model
+            if len(y_pred.shape) == 1:
+                y_pred = y_pred[None, None, :, None]
+
             predictions.append(y_pred)
 
             # Update the input sequence by appending the new prediction and removing the oldest time point

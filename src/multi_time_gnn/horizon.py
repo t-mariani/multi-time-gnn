@@ -31,6 +31,11 @@ def horizon_computing(model, test, config, y_mean, y_std, list_horizon=None):
                 x = x.to(config.device)
                 y_true = y[:, :, j].to(config.device)
                 y_pred, loss_norm = model(x, y_true)
+                
+                # for the statistical model
+                if len(y_pred.shape) == 2:
+                    y_pred = y_pred[:, None, :, None]
+
                 # without normalization
                 y_denorm_pred = denormalize(y_pred.squeeze().to("cpu").T, y_mean, y_std).T
                 y_denorm_true = denormalize(y_true.squeeze().to("cpu").T, y_mean, y_std).T

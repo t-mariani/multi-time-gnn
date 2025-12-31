@@ -71,12 +71,17 @@ def register_model(model: torch.nn.Module, config: Box ):
 
 
 def load_model(
-    model_class: torch.nn.Module, model_dir: Path, config: Box
-) -> torch.nn.Module:
-    model_path = model_dir / (model_class.__name__ + ".pt")
-    model = model_class(config)
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
+    model_class, model_dir: Path, config: Box
+):
+    if config.model_kind == "MTGNN":
+        model = model_class(config)
+        model_path = model_dir / (model_class.__name__ + ".pt")
+        model.load_state_dict(torch.load(model_path))
+        model.eval()
+    elif config.model_kind == "statistical":
+        model = model_class(config)
+        model_path = model_dir / ("model.npy")
+        model.best_lags = np.load(model_path)
     return model
 
 

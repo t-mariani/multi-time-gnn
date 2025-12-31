@@ -188,8 +188,9 @@ def pipeline_plotting(model, test_data, mean, std, config, clip_N: int | None = 
     )
     fig_predict.savefig(config.output_dir + "/predictions.png", dpi=300)
 
-    log.info(" * Plotting Graph Learned")
-    fig_graph = plot_graph(
-        adj_matrix=model.graph_learn().cpu().detach().numpy(), show=False
-    )
-    fig_graph.savefig(config.output_dir + "/learned_graph.png")
+    if config.model_kind == "MTGNN":
+        log.info(" * Plotting Graph Learned")
+        fig_graph = plot_graph(
+            adj_matrix=model.graph_learn().cpu().detach().numpy(), show=False
+        )
+        fig_graph.savefig(config.output_dir + "/learned_graph.png")

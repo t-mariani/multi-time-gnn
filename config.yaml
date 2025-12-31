@@ -11,8 +11,13 @@ log_level : INFO # DEBUG, INFO, WARNING, ERROR
 tensorboard_dir: "runs"
 
 # dataset
-train_ratio : 0.9
+train_ratio : 0.995
 timepoints_input: 168
+batch_size : 16
+val_batch_size : 128
+
+# Test
+nb_test : 40
 
 MTGNN:
   # Architecture Hyperparemeter 
@@ -30,8 +35,7 @@ MTGNN:
   intermediate_output_channels: 64 # dimension of last conv layer before projecting to horizon  
 
   # Training 
-  batch_size : 16
-  val_batch_size : 128
+
   move_all_device: True
   n_epoch : 50
   nb_iter_per_epoch : 200 # if 0 : everything 
@@ -39,15 +43,11 @@ MTGNN:
   weight_decay : 0.0001 # Regularisation L2 
 
 
-  # Test
-  nb_test : 40
-
 statistical: 
-  name: piche
   device: cpu
 
   # choosing the range of the lag for the statistical model
   lag_min: 1
-  lag_max: 40 # not include
-  nb_val: 1  # 20 a good number
+  lag_max: 30 # not include
+  nb_val: 20  # 20 a good number
 
