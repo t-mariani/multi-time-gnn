@@ -57,6 +57,9 @@ class TimeSeriesDataset(Dataset):
         self.device = config.device
         self.length_prediction = length_prediction
 
+        assert self.data.shape[1] >= self.nb_points + self.length_prediction, \
+            f"Data length {self.data.shape[1]} is too short for input points {self.nb_points} and prediction length {self.length_prediction}"
+
     def __len__(self):
         return self.data.shape[-1] - self.nb_points - self.length_prediction
 
