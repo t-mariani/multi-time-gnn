@@ -16,6 +16,14 @@ First version is based on :
 }
 ```
 
+### Our work
+This project is an implementation of this paper model. We then try to apply this model to EEG data. Our goal is to compare the performance of the deep learning model with classical statistical models. 
+
+### The statistical models
+We first try to compare our results with simple univariate statistical models like **AR** or **ARIMA**. Those models have two issues: the EEG are highly non stationary so we should try methods like ARIMA in order to obtain stationarity. And they are just univariate models. We lack the knowledge that all the channels interact with each other. 
+
+We could try models like **VAR** or **VARIMA** to take into account the multivariate problem. However with so many channels we would run quickly out of memory.
+
 
 ### Things that we need to understand
 What is the channel in the convolution layer? Not clear at all for me.
