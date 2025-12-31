@@ -5,7 +5,7 @@ from torchinfo import summary
 
 from multi_time_gnn.model import get_model
 from multi_time_gnn.dataset import normalize, read_dataset, find_mean_std, TimeSeriesDataset, split_train_val_test
-from multi_time_gnn.training import train_loop
+from multi_time_gnn.training import train_loop_mtgnn, train_loop_statistical
 from multi_time_gnn.visualization import pipeline_plotting
 from multi_time_gnn.utils import get_tensorboard_writer, load_config, get_logger, load_model, register_model, set_all_global_seed, keep_config_model_kind
 from multi_time_gnn.horizon import horizon_computing
@@ -68,7 +68,10 @@ if __name__ == "__main__":
 
     log.info("Starting training...")
     try:
-        train_loop(model, dataset_train, dataset_val, optimizer, config, writer)
+        if config.model_kind == "MTGNN":
+            train_loop_mtgnn(model, dataset_train, dataset_val, config, optimizer, writer)
+        elif config.model_kind == "statistical":
+            train_loop_statistical(model, dataset_train, dataset_val, config, writer)
     except KeyboardInterrupt:
         log.warning("Training interrupted by user.")
 

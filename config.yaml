@@ -3,7 +3,6 @@ dataset_name : eeg
 path_eeg: ../ds002778/sub-hc2/ses-hc/eeg/sub-hc2_ses-hc_task-rest_eeg.bdf # put None if you don't want to use eeg otherwise the path
 
 model_kind: statistical # if statistical, we take the config from statistical if MTGNN the one from MTGNN
-device : auto # auto, cuda, cpu, mps
 seed : 42
 
 # Logging 
@@ -17,6 +16,7 @@ timepoints_input: 168
 
 MTGNN:
   # Architecture Hyperparemeter 
+  device : auto # auto, cuda, cpu, mps
   m : 4 # Number of graph convolution module AND temporal conv module 
   alpha : 3 # saturation parameter in graph layer
   k : 2 # Step in mix hop = depth of propagation
@@ -44,4 +44,10 @@ MTGNN:
 
 statistical: 
   name: piche
+  device: cpu
+
+  # choosing the range of the lag for the statistical model
+  lag_min: 1
+  lag_max: 40 # not include
+  nb_val: 1  # 20 a good number
 

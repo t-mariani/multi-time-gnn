@@ -207,21 +207,7 @@ def get_model(config):
     if config.model_kind == "MTGNN":
         return NextStepModelMTGNN(config)
     elif config.model_kind == "statistical":
-        return NextStepModelAR()
-
-class NextStepModelAR():
-    def __init__(self):
-        pass
- 
-    def forward(self, input, lags, y=None):
-        result = np.empty((input.shape[0]))
-        for chanel_number, time_serie in enumerate(input):
-            model = AutoReg(time_serie, lags=lags[chanel_number], trend='c')
-            model_fit = model.fit()
-            pred = model_fit.predict(start=len(time_serie), end=len(time_serie), dynamic=False)
-            result.append(pred)
-
-
+        return NextStepModelAR(config)
 
 
 class NextStepModelMTGNN(nn.Module):
@@ -306,3 +292,24 @@ class NextStepModelMTGNN(nn.Module):
         log.debug(f"Compared y : {y.shape}")
         loss = self.loss(next_point.squeeze(), y.squeeze())
         return next_point, loss
+
+
+class NextStepModelAR():
+    def __init__(self, config):
+        self.best_lags = np.ones(config.N, dtype=np.int8)
+ 
+    def __call__(self, input, y=None, lags=None):
+        input = input.numpy().squeeze()
+        y = y.numpy().squeeze()
+        if lags is None:
+            lags = self.best_lags
+        result = np.empty((input.shape[0]))
+        for chanel_number, time_serie in enumerate(input):
+            model = AutoReg(time_serie, lags=lags[chanel_number], trend='c')
+            model_fit = model.fit()
+            pred = model_fit.predict(start=len(time_serie), end=len(time_serie), dynamic=False)
+            result[chanel_number] = pred.item()
+        if y is None:
+            return result
+        else:
+            return result, (result - y) ** 2

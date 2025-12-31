@@ -1,8 +1,10 @@
 from typing import TYPE_CHECKING
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 import torch.nn.functional as F
 from tqdm import tqdm
+import numpy as np
+import torch
 
 from multi_time_gnn.utils import get_logger, register_model
 from multi_time_gnn.test import prediction_step
@@ -13,7 +15,8 @@ if TYPE_CHECKING:
 log = get_logger()
 
 
-def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:"SummaryWriter"=None):
+def train_loop_mtgnn(model, dataset_train, dataset_val, config, optimizer=None, writer:"SummaryWriter"=None):
+    """The training loop for mtgnn"""
     model.train()
     # nodes = [1:N] TODO implement when subgraphs
     train_loader = DataLoader(dataset_train, batch_size=config.batch_size, shuffle=True)
@@ -65,4 +68,31 @@ def train_loop(model, dataset_train, dataset_val, optimizer, config, writer:"Sum
             log.info(f"Save new model epoch {i}: val_loss ({loss_val:.4f}) < best_val_loss ({best_val_loss:.4f})")
             best_val_loss = loss_val
             register_model(model, config=config)
-            
+
+
+def train_loop_statistical(model, dataset_train, dataset_val, config, writer:"SummaryWriter"=None):
+    """
+    The training loop for the statistical model
+    The goal is just to find the best lag for each channel for our local statistical model
+    We only use validation to find the best lag
+    """
+    train_loader = DataLoader(dataset_train, batch_size=1, shuffle=True)
+    indices = torch.randperm(len(dataset_val))[:config.nb_val]
+    dataset_val = Subset(dataset_val, indices)  # we take just a subset of the dataset to speed up the process
+    val_loader = DataLoader(dataset_val, batch_size=1, shuffle=False)
+    nb_lags = config.lag_max - config.lag_min
+    loss_val_with_lags = np.empty((nb_lags, config.N))
+
+    log.info(f"Finding the best lag for our statistical model...")
+    for nb_lag, lag in tqdm(enumerate(range(config.lag_min, config.lag_max))):
+        loss_lag = np.zeros(config.N)
+        for x_val, y_val in val_loader:
+            x_val = x_val.to(config.device)
+            y_val = y_val.to(config.device)
+            _, loss = model(x_val, y_val, lag * np.ones(config.N, dtype=np.int8))
+            loss_lag += loss
+        loss_val_with_lags[nb_lag, :] = loss_lag
+    # Keeping the best model
+    model.best_lags = np.argmin(loss_val_with_lags, axis=0)
+    log.info(f"Save new model")
+    register_model(model, config=config)
