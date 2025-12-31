@@ -49,8 +49,8 @@ if __name__ == "__main__":
     # Update config with dataset specific parameters
     config.N = n_capteur
 
-    Model = get_model(config)
-    model = Model(config)
+    model_class = get_model(config)
+    model = model_class(config)
     if config.model_kind == "MTGNN":
         if config.device == "auto":
             config.device = (

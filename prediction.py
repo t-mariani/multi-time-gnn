@@ -2,7 +2,8 @@ from pathlib import Path
 
 from multi_time_gnn.dataset import get_normalizer, read_dataset, split_train_val_test
 from multi_time_gnn.horizon import horizon_computing
-from multi_time_gnn.model import NextStepModel
+from multi_time_gnn.model import get_model
+from multi_time_gnn.preprocessing import preprocess_eeg
 from multi_time_gnn.visualization import pipeline_plotting
 from multi_time_gnn.utils import get_logger, load_config, get_latest_dir, load_model
 
@@ -14,12 +15,20 @@ if __name__ == "__main__":
     model_dir = get_latest_dir(Path(res_dir))
     # Load config, model and dataset
     config = load_config(model_dir / "config.yaml")
-    model = load_model(NextStepModel, model_dir, config)
+    log = get_logger("main", config.log_level)
+    log.debug(config)
+    
+    model_class = get_model(config)
+    model = load_model(model_class, model_dir, config)
     model.to(config.device)
     dataset = read_dataset(config.dataset_name, config.path_eeg)
 
-    log = get_logger("main", config.log_level)
-    log.debug(config)
+    if config.preprocessing and config.dataset_name == "eeg":
+        log.info("Preprocessing EEG data: high-pass filtering and resampling...")
+        dataset = preprocess_eeg(dataset, config)
+    elif config.preprocessing:
+        log.warning("Preprocessing is only implemented for EEG dataset currently.")
+
 
     train, _, test = split_train_val_test(dataset, train_ratio=config.train_ratio, val_ratio=(1 - config.train_ratio)/2)
 
