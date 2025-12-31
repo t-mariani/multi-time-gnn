@@ -7,13 +7,14 @@ from multi_time_gnn.model import NextStepModel
 from multi_time_gnn.dataset import normalize, read_dataset, find_mean_std, TimeSeriesDataset, split_train_val_test
 from multi_time_gnn.training import train_loop
 from multi_time_gnn.visualization import pipeline_plotting
-from multi_time_gnn.utils import get_tensorboard_writer, load_config, get_logger, load_model, register_model, set_all_global_seed
+from multi_time_gnn.utils import get_tensorboard_writer, load_config, get_logger, load_model, register_model, set_all_global_seed, keep_config_model_kind
 from multi_time_gnn.horizon import horizon_computing
 
 
 if __name__ == "__main__":
 
     config = load_config()
+    config = keep_config_model_kind(config)
     now = datetime.now().strftime("%Y%m%d-%H%M%S")
     dir_path = Path("saved_models/" + now)
     dir_path.mkdir(parents=True, exist_ok=True)
@@ -28,6 +29,7 @@ if __name__ == "__main__":
 
     log = get_logger("main", config.log_level, path_file=str(dir_path / "training.log"))
     log.debug(config)
+    log.info(f"Model used '{config.model_kind}'")
 
     set_all_global_seed(config.seed)
 

@@ -22,6 +22,19 @@ def load_config(config_path="config.yaml", return_type: Literal["dict", "box"] =
     else:
         raise ValueError("return_type not supported, use either 'dict' or 'box'")
 
+def keep_config_model_kind(config):
+    """
+    if the model kind is statistical, it throws away the MTGNN config
+    if the model kind is MTGNN, it throws away the statistical config
+    """
+    if config.model_kind == "statistical":
+        config.update(config.statistical)
+    else:
+        config.update(config.MTGNN)
+    config.pop('MTGNN', None)
+    config.pop('statistical', None)
+    return config
+
 
 def get_logger(name: str = "main", level: int = None, path_file:str=None) -> logging.Logger:
     logger = logging.getLogger(name)

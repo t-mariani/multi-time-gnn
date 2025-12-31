@@ -2,36 +2,43 @@
 dataset_name : eeg
 path_eeg: ../ds002778/sub-hc2/ses-hc/eeg/sub-hc2_ses-hc_task-rest_eeg.bdf # put None if you don't want to use eeg otherwise the path
 
-# Architecture Hyperparemeter 
-m : 4 # Number of graph convolution module AND temporal conv module 
-alpha : 3 # saturation parameter in graph layer
-k : 2 # Step in mix hop = depth of propagation
-beta : 0.05 # ratio of retained info from root node  
-k_sparsity: 20 # Number of edges to keep per node in graph sparsification
-p_dropout: 0.3 # Dropout after time convolution module
-embedding_dim : 40 # Dimension of captors embeddings for the graph computation
-enable_layer_norm: True
-residual_channels: 16 # Channels for the main loop, define time convolution module, divisible by 4
-skip_layer_channels: 32 # before output module, number of channels of each block output 
-intermediate_output_channels: 64 # dimension of last conv layer before projecting to horizon  
-timepoints_input: 168
+model_kind: MTGNN # if statistical, we take the config from statistical if MTGNN the one from MTGNN
 
-# Training 
-batch_size : 16
-val_batch_size : 128
-move_all_device: True
-n_epoch : 50
-train_ratio : 0.9
-nb_iter_per_epoch : 200 # if 0 : everything 
-learning_rate : 0.001
-weight_decay : 0.0001 # Regularisation L2 
-device : auto # auto, cuda, cpu, mps
-seed : 42
+MTGNN:
+  # Architecture Hyperparemeter 
+  m : 4 # Number of graph convolution module AND temporal conv module 
+  alpha : 3 # saturation parameter in graph layer
+  k : 2 # Step in mix hop = depth of propagation
+  beta : 0.05 # ratio of retained info from root node  
+  k_sparsity: 20 # Number of edges to keep per node in graph sparsification
+  p_dropout: 0.3 # Dropout after time convolution module
+  embedding_dim : 40 # Dimension of captors embeddings for the graph computation
+  enable_layer_norm: True
+  residual_channels: 16 # Channels for the main loop, define time convolution module, divisible by 4
+  skip_layer_channels: 32 # before output module, number of channels of each block output 
+  intermediate_output_channels: 64 # dimension of last conv layer before projecting to horizon  
+  timepoints_input: 168
 
-# Logging 
-log_each : 1
-log_level : INFO # DEBUG, INFO, WARNING, ERROR
-tensorboard_dir: "runs"
+  # Training 
+  batch_size : 16
+  val_batch_size : 128
+  move_all_device: True
+  n_epoch : 50
+  train_ratio : 0.9
+  nb_iter_per_epoch : 200 # if 0 : everything 
+  learning_rate : 0.001
+  weight_decay : 0.0001 # Regularisation L2 
+  device : auto # auto, cuda, cpu, mps
+  seed : 42
 
-# Test
-nb_test : 40
+  # Logging 
+  log_each : 1
+  log_level : INFO # DEBUG, INFO, WARNING, ERROR
+  tensorboard_dir: "runs"
+
+  # Test
+  nb_test : 40
+
+statistical: 
+  name: piche
+
