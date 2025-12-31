@@ -63,11 +63,13 @@ def register_model(model: torch.nn.Module, config: Box ):
     if config.model_kind == "MTGNN":
         model_path = dir_path / (model.__class__.__name__ + ".pt")
         torch.save(model.state_dict(), model_path)
-        cfg_path = dir_path / "config.yaml"
-        with open(cfg_path, "w") as file:
-            yaml.dump(config.to_dict(), file)
     elif config.model_kind == "statistical":
         np.save(f'{dir_path}/model.npy', model.best_lags)
+    
+    # Save config for reproducibility
+    cfg_path = dir_path / "config.yaml"
+    with open(cfg_path, "w") as file:
+        yaml.dump(config.to_dict(), file)
 
 
 def load_model(
