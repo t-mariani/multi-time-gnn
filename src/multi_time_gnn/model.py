@@ -82,7 +82,7 @@ class MixHopPropagationLayer(nn.Module):
                 nn.Linear(
                     config.residual_channels, config.residual_channels, bias=False
                 )
-                for _ in range(config.k)
+                for _ in range(config.k + 1)
             ]
         )
 
@@ -110,7 +110,10 @@ class MixHopPropagationLayer(nn.Module):
         Atilde = Dmoins1 @ (A + torch.eye(self.config.N, device=self.config.device))  # NxN
 
         Hprev = Hin
-        Hout = 0
+        Hout = rearrange(
+            self.mlps[0](rearrange(Hprev, "b c n t -> b n t c")),
+            "b n t c -> b c n t"
+            )
         for i in range(self.config.k):
             graph_times_hprev = torch.einsum(
                 "n m, bcnt -> b c m t", Atilde, Hprev
@@ -122,7 +125,7 @@ class MixHopPropagationLayer(nn.Module):
             )  # BxCxNxT
             log.debug(f"hprev shape :{Hprev.shape}")
             Hout += rearrange(
-                self.mlps[i](rearrange(Hprev, "b c n t -> b n t c")),
+                self.mlps[i + 1](rearrange(Hprev, "b c n t -> b n t c")),
                 "b n t c -> b c n t",
             )
         return Hout  # BxCxNxT
@@ -135,14 +138,14 @@ class GraphConvolutionModule(nn.Module):
         self.right_mix_hop = MixHopPropagationLayer(config)
 
     def forward(self, x, A: torch.Tensor):
-        return self.left_mix_hop(x, A) + self.left_mix_hop(x, A.T)
+        return self.left_mix_hop(x, A) + self.right_mix_hop(x, A.T)
 
 
 class DilatedInceptionLayer(nn.Module):
     def __init__(self, config, d):
         super().__init__()
         out_channel = config.residual_channels // 4
-        conv_size = [2, 3, 5, 7]
+        conv_size = [2, 3, 6, 7]
         self.convs = []
         for size in conv_size:
             self.convs.append(
@@ -176,7 +179,7 @@ class TimeConvolutionModule(nn.Module):
         self.right_dilated_incep = DilatedInceptionLayer(config, d)
 
     def forward(self, x):
-        return tanh(self.left_dilated_incep(x)) + sigmoid(self.right_dilated_incep(x))
+        return tanh(self.left_dilated_incep(x)) * sigmoid(self.right_dilated_incep(x))
 
 
 class OutputModule(nn.Module):
@@ -284,7 +287,7 @@ class NextStepModelMTGNN(nn.Module):
         x = self.last_skip(x)  # B,C,N,1
         log.debug(f"Skip {skip.shape}")
         log.debug(f"Last Skip {x.shape}")
-        next_point = self.output_module(skip + x)  # B,1,N,1
+        next_point = self.output_module(skip)  # B,1,N,1
         log.debug(f"Next point : {next_point.shape}")
         if y is None:
             return next_point, None
