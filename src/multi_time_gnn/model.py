@@ -292,7 +292,7 @@ class NextStepModelMTGNN(nn.Module):
         x = self.last_skip(x)  # B,C,N,1
         log.debug(f"Skip {skip.shape}")
         log.debug(f"Last Skip {x.shape}")
-        next_point = self.output_module(skip)  # B,1,N,1
+        next_point = self.output_module(skip + x)  # B,1,N,1
         log.debug(f"Next point : {next_point.shape}")
         if y is None:
             return next_point, None

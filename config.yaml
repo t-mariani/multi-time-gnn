@@ -21,10 +21,15 @@ train_ratio : 0.6
 timepoints_input: 168
 batch_size : 16
 val_batch_size : 128
+horizon_prediction: 3  # the horizon we want to predict
 
 # Test
 nb_test : 40
-list_horizon: [3,6,12,24]
+# list_horizon: [3,6,12,24]
+
+# Plotting
+pipeline_plotting: False
+plotting_horizon: False
 
 MTGNN:
   # Architecture Hyperparemeter 

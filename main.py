@@ -90,10 +90,12 @@ if __name__ == "__main__":
     best_model = load_model(get_model(config), Path(config.output_dir), config)
     best_model.to(config.device)
 
-    log.info("Generating plots...")
-    pipeline_plotting(best_model, test, normalizer, config)
+    if config.pipeline_plotting:
+        log.info("Generating plots...")
+        pipeline_plotting(best_model, test, normalizer, config)
 
-    log.info("Computing the horizon...")
-    horizon_computing(best_model, test, config, normalizer, list_horizon=config.list_horizon)
+    if config.plotting_horizon:
+        log.info("Computing the horizon...")
+        horizon_computing(best_model, test, config, normalizer, list_horizon=config.list_horizon)
 
     log.info("✅ Pipeline completed successfully")
