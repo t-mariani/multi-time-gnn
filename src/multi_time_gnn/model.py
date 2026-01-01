@@ -239,9 +239,13 @@ class NextStepModelMTGNN(nn.Module):
             for i in range(config.m)
         ]
         log.debug(f"List Li (number of timepoints after each block) : {list_Li}")
-        self.layer_norm = nn.ModuleList(
-            [nn.LayerNorm((config.residual_channels, config.N, Li)) for Li in list_Li]
-        )
+        # self.layer_norm = nn.ModuleList(
+        #     [nn.LayerNorm((config.residual_channels, config.N, Li)) for Li in list_Li]
+        # )
+        self.layer_norm = nn.ModuleList([
+            nn.LayerNorm(config.residual_channels) 
+            for _ in range(config.m)
+        ])
         self.skip_layer = nn.ModuleList(
             [
                 nn.Conv2d(
@@ -278,7 +282,9 @@ class NextStepModelMTGNN(nn.Module):
             x2 = self.graphCM[i](x1, graph)  # BxCxNxT'
             log.debug(f"x shape graphCM, block {i}: {x2.shape}")
             if self.config.enable_layer_norm:
-                x2 = self.layer_norm[i](x2)  # BxCxNxT'
+                x2 = x.permute(0, 2, 3, 1) # BxNxT'xC
+                x2 = self.layer_norm[i](x2)
+                x2 = x2.permute(0, 3, 1, 2)
 
             x = (
                 x2 + residual[:, :, :, -x2.size(3) :]
