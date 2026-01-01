@@ -1,12 +1,14 @@
 # Dataset 
-dataset_name : eeg
+dataset_name : electricity
 path_eeg: ../ds002778/sub-hc2/ses-hc/eeg/sub-hc2_ses-hc_task-rest_eeg.bdf # put None if you don't want to use eeg otherwise the path
 normalization_method : zscore # zscore, minmax, none
-preprocessing : True # apply preprocessing (filtering + resampling)
+
+# Dataset preprocessing
+preprocessing : False # apply preprocessing (filtering + resampling)
 eeg_target_fs : 100 # Target sampling frequency after resampling
 eeg_highpass_cutoff : 50 # High-pass filter cutoff frequency in Hz
 
-model_kind: statistical # if statistical, we take the config from statistical if MTGNN the one from MTGNN
+model_kind: MTGNN # if statistical, we take the config from statistical if MTGNN the one from MTGNN
 seed : 42
 
 # Logging 
@@ -15,7 +17,7 @@ log_level : INFO # DEBUG, INFO, WARNING, ERROR
 tensorboard_dir: "runs"
 
 # dataset
-train_ratio : 0.995
+train_ratio : 0.6
 timepoints_input: 168
 batch_size : 16
 val_batch_size : 128
@@ -43,7 +45,7 @@ MTGNN:
 
   move_all_device: True
   n_epoch : 50
-  nb_iter_per_epoch : 200 # if 0 : everything 
+  nb_iter_per_epoch : 1000 # if 0 : everything 
   learning_rate : 0.001
   weight_decay : 0.0001 # Regularisation L2 
 
@@ -53,6 +55,6 @@ statistical:
 
   # choosing the range of the lag for the statistical model
   lag_min: 1
-  lag_max: 30 # not include
-  nb_val: 20  # 20 a good number
+  lag_max: 20 # not include
+  nb_val: 3  # 20 a good number
 

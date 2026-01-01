@@ -199,7 +199,6 @@ class OutputModule(nn.Module):
 
     def forward(self, x):
         log.debug(f"output x shape : {x.shape}")
-        x = relu(x)
         x = relu(self.end_conv_1(x))
         log.debug(f"output x shape endconv1 : {x.shape}")
         x = self.end_conv_2(x)
@@ -282,7 +281,7 @@ class NextStepModelMTGNN(nn.Module):
             x2 = self.graphCM[i](x1, graph)  # BxCxNxT'
             log.debug(f"x shape graphCM, block {i}: {x2.shape}")
             if self.config.enable_layer_norm:
-                x2 = x.permute(0, 2, 3, 1) # BxNxT'xC
+                x2 = x2.permute(0, 2, 3, 1) # BxNxT'xC
                 x2 = self.layer_norm[i](x2)
                 x2 = x2.permute(0, 3, 1, 2)
 
