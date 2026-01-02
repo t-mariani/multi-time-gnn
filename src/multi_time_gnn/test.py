@@ -58,7 +58,7 @@ def _compute_corr(y_pred, y_true):
     return correlation.mean()
 
 
-def prediction_step(model, config, val=None, val_loader=None, return_loss=False):
+def prediction_step(model, config, normalizer, val=None, val_loader=None, return_loss=False):
     """Run a test step on the model with no gradient and backwward prop
 
     Parameters:
@@ -76,6 +76,7 @@ def prediction_step(model, config, val=None, val_loader=None, return_loss=False)
     with torch.no_grad():
         loss_val = []
         all_prediction = []
+        all_expected = []
         log.info("Run prediction step")
         for x_val, y_val in tqdm(val_loader):
             x_val = x_val.to(config.device)
@@ -83,11 +84,15 @@ def prediction_step(model, config, val=None, val_loader=None, return_loss=False)
             prediction, loss = model(x_val, y_val)
             loss_val.append(loss.item())
             all_prediction.append(prediction)
+            all_expected.append(y_val)
         total_ypred = torch.cat(all_prediction, dim=0)
+        total_yexpected = torch.cat(all_expected, dim=0)
     total_ypred = total_ypred.squeeze().T # From Bx1xNx1 -> NxB because here B=T
-
+    total_yexpected = total_yexpected.squeeze().T # From Bx1xNx1 -> NxB because here B=T
+    total_yexpected_denorm = normalizer.denormalize(total_yexpected.cpu()).T
+    total_ypred_denorm = normalizer.denormalize(total_ypred.cpu()).T
     if return_loss:
-        return total_ypred, sum(loss_val) / len(loss_val)
+        return total_ypred, sum(loss_val) / len(loss_val), _compute_rse(total_ypred_denorm, total_yexpected_denorm), _compute_corr(total_ypred_denorm, total_yexpected_denorm)
     return total_ypred # NxT 
 
 

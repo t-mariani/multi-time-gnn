@@ -1,7 +1,8 @@
 # Dataset 
-dataset_name : electricity
-path_eeg: ../ds002778/sub-hc2/ses-hc/eeg/sub-hc2_ses-hc_task-rest_eeg.bdf # put None if you don't want to use eeg otherwise the path
-normalization_method : zscore # zscore, minmax, none
+dataset_name : solar
+path_eeg: None # ../ds002778/sub-hc2/ses-hc/eeg/sub-hc2_ses-hc_task-rest_eeg.bdf # put None if you don't want to use eeg otherwise the path
+normalization_method : max # zscore, minmax, max, none
+loss_kind : l1 # mse, l1
 
 # Dataset preprocessing
 preprocessing : False # apply preprocessing (filtering + resampling)
@@ -19,12 +20,12 @@ tensorboard_dir: "runs"
 # dataset
 train_ratio : 0.6
 timepoints_input: 168
-batch_size : 16
-val_batch_size : 128
-horizon_prediction: 3  # the horizon we want to predict
+batch_size : 4
+val_batch_size : 16
+horizon_prediction: 12  # the horizon we want to predict
 
 # Test
-nb_test : 40
+# nb_test : 40
 # list_horizon: [3,6,12,24]
 
 # Plotting
@@ -49,10 +50,10 @@ MTGNN:
   # Training 
 
   move_all_device: True
-  n_epoch : 50
-  nb_iter_per_epoch : 1000 # if 0 : everything 
-  learning_rate : 0.001
-  weight_decay : 0.0001 # Regularisation L2 
+  n_epoch : 10
+  nb_iter_per_epoch : 0 # if 0 : everything 
+  learning_rate : 0.0001
+  weight_decay : 0.00001 # Regularisation L2 
 
 
 statistical: 

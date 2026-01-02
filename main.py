@@ -80,7 +80,7 @@ if __name__ == "__main__":
     log.info("Starting training...")
     try:
         if config.model_kind == "MTGNN":
-            train_loop_mtgnn(model, dataset_train, dataset_val, config, optimizer, writer)
+            train_loop_mtgnn(model, dataset_train, dataset_val, config, normalizer, optimizer, writer)
         elif config.model_kind == "statistical":
             train_loop_statistical(model, dataset_train, dataset_val, config, writer)
     except KeyboardInterrupt:

@@ -29,7 +29,7 @@ def read_dataset(
         raise ValueError(
             f"Unknown dataset: {which}, available are {available_datasets}, nor provide a valid path_eeg {path_eeg} for eeg data."
         )
-    if not path_eeg:
+    if which != "eeg":
         with open(path, "r") as f:
             data = f.readlines()
             data = [list(map(float, line.strip().split(","))) for line in data]
@@ -79,7 +79,19 @@ class Normalizer:
     @abstractmethod
     def denormalize(self, data):
         pass
+
+class MaxNormalizer(Normalizer):
+    def __init__(self, data_fit: np.ndarray):
+        """data_fit : np.ndarray of shape (N, T) used to compute min and max"""
+        self.data_max = np.abs(data_fit).max(axis=1)
     
+    def normalize(self, data):
+        return data / self.data_max[:, None]
+    
+    def denormalize(self, data):
+        return data * self.data_max[:, None]
+
+
 class ZscoreNormalizer(Normalizer):
     """Z-score Normalizer, normalizes data to have mean 0 and std 1"""
     def __init__(self, data_fit: np.ndarray):
@@ -118,6 +130,8 @@ def get_normalizer(name: str, data_fit: np.ndarray) -> Normalizer:
         return ZscoreNormalizer(data_fit)
     elif name == "minmax":
         return MinMaxNormalizer(data_fit)
+    elif name == "max":
+        return MaxNormalizer(data_fit)
     elif name == "none":
         return NoNormalizer()
     else:

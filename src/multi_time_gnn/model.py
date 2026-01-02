@@ -262,7 +262,10 @@ class NextStepModelMTGNN(nn.Module):
         )
         self.output_module = OutputModule(config)
 
-        self.loss = MSELoss()
+        if config.loss_kind == "mse":
+            self.loss = MSELoss()
+        elif config.loss_kind == "l1":
+            self.loss = nn.L1Loss()
 
     def forward(self, input, y=None, v=None):
         graph = self.graph_learn(v)  # NxN

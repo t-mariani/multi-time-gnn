@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 log = get_logger()
 
 
-def train_loop_mtgnn(model, dataset_train, dataset_val, config, optimizer=None, writer:"SummaryWriter"=None):
+def train_loop_mtgnn(model, dataset_train, dataset_val, config, normalizer, optimizer=None, writer:"SummaryWriter"=None):
     """The training loop for mtgnn"""
     model.train()
     # nodes = [1:N] TODO implement when subgraphs
@@ -28,7 +28,7 @@ def train_loop_mtgnn(model, dataset_train, dataset_val, config, optimizer=None, 
         y_val = y_val.to(config.device)
         _, loss = model(x_val, y_val)
         log_loss_val.append(loss.item())
-        log_loss_ref.append(F.mse_loss(x_val.squeeze()[:, :, -1], y_val))
+        log_loss_ref.append(model.loss(x_val.squeeze()[:, :, -1], y_val))
     ref_value = sum(log_loss_ref) / len(log_loss_ref)
     log.info(f"Starting Epoch 0: val: {(sum(log_loss_val) / len(log_loss_val)):.4f} - ref: {ref_value:.4f}")
 
@@ -59,11 +59,11 @@ def train_loop_mtgnn(model, dataset_train, dataset_val, config, optimizer=None, 
                 writer.add_scalar('Loss/Train_Loss', loss.item(), j + i * total_step_each_epoch)
 
 
-        _, loss_val = prediction_step(model, config, val_loader=val_loader, return_loss=True)
+        _, loss_val, rse, corr = prediction_step(model, config, val_loader=val_loader, return_loss=True, normalizer=normalizer)
         if writer:
             writer.add_scalar("Loss/Val_Loss", loss_val, (i + 1) * total_step_each_epoch)
 
-        log.info(f"Epoch {i}: train: {(sum(log_loss) / len(log_loss)):.4f} - val: {loss_val:.4f} - ref: {ref_value:.4f}")
+        log.info(f"Epoch {i}: train: {(sum(log_loss) / len(log_loss)):.4f} - val: {loss_val:.4f} - ref: {ref_value:.4f} - rse: {rse:.4f} - corr: {corr:.4f}")
 
         # Log model with best val loss 
         if loss_val < best_val_loss :
