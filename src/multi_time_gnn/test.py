@@ -1,11 +1,62 @@
 import torch
-from tqdm import tqdm
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
+from tqdm import tqdm
+import json
 
 from multi_time_gnn.dataset import TimeSeriesDataset
 from multi_time_gnn.utils import get_logger
 
 log = get_logger()
+
+def test_loss(model, config, test_data, test_std, normalizer):
+    """Compute the RSE of the dataset"""
+    dataset_test = TimeSeriesDataset(test_data, config)
+    test_loader = DataLoader(dataset_test, batch_size=config.val_batch_size, shuffle=False)
+    model.eval()
+    with torch.no_grad():
+        y_pred_tot_norm = torch.tensor([])
+        y_true_tot_norm = torch.tensor([])
+        for x_test, y_test in tqdm(test_loader):
+            x_test = x_test.to(config.device)
+            y_test = y_test.to(config.device)
+            y_predict, loss = model(x_test, y_test)
+            y_pred_tot_norm = torch.concat((y_pred_tot_norm, y_predict.to("cpu")))
+            y_true_tot_norm = torch.concat((y_true_tot_norm, y_test.to("cpu")))
+    y_pred_tot_norm = y_pred_tot_norm.squeeze()
+    y_pred_tot_denorm = normalizer.denormalize(y_pred_tot_norm.T).T
+    y_true_tot_denorm = normalizer.denormalize(y_true_tot_norm.T).T
+    rse = _compute_rse(y_pred_tot_denorm, y_true_tot_denorm)
+    corr = _compute_corr(y_pred_tot_denorm, y_true_tot_denorm)
+    log.info(f"Horizon: {config.horizon_prediction} - RSE: {rse:.4f} - Corr: {corr:.4f}")
+    with open(f"{config.output_dir}/results.json", 'w') as f:
+        json.dump({
+            "horizon": config.horizon_prediction,
+            "RSE": rse.item(),
+            "CORR": corr.item()
+        }, f)
+
+def _compute_rse(y_pred, y_true):
+    """Compute the root relative squared error"""
+    mse = F.mse_loss(y_pred, y_true) 
+    numerator = torch.sqrt(mse)
+    denominator = y_true.std(unbiased=False)
+    rse = numerator / (denominator + 1e-7)
+    return rse
+
+
+def _compute_corr(y_pred, y_true):
+    """
+    Compute the Empirical Correlation Coefficient (CORR).
+    """
+    mean_p = y_pred.mean(dim=0)
+    mean_t = y_true.mean(dim=0)
+    std_p = y_pred.std(dim=0, unbiased=False)
+    std_t = y_true.std(dim=0, unbiased=False)
+    covariance = ((y_pred - mean_p) * (y_true - mean_t)).mean(dim=0)
+    correlation = covariance / (std_p * std_t + 1e-7)
+    return correlation.mean()
+
 
 def prediction_step(model, config, val=None, val_loader=None, return_loss=False):
     """Run a test step on the model with no gradient and backwward prop

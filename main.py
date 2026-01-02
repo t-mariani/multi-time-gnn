@@ -10,6 +10,7 @@ from multi_time_gnn.visualization import pipeline_plotting
 from multi_time_gnn.utils import get_tensorboard_writer, load_config, get_logger, load_model, register_model, set_all_global_seed, keep_config_model_kind
 from multi_time_gnn.horizon import horizon_computing
 from multi_time_gnn.preprocessing import preprocess_eeg
+from multi_time_gnn.test import test_loss
 
 
 if __name__ == "__main__":
@@ -39,7 +40,7 @@ if __name__ == "__main__":
 
     n_capteur, nb_timestamp = dataset.shape
     train, val, test = split_train_val_test(dataset, train_ratio=config.train_ratio, val_ratio=(1 - config.train_ratio)/2)
-
+    val_std, test_std = val.std(), test.std()
     normalizer = get_normalizer(config.normalization_method, train)
     train = normalizer.normalize(train)
     val = normalizer.normalize(val)
@@ -89,6 +90,9 @@ if __name__ == "__main__":
     log.info("Loading best model for evaluation...")
     best_model = load_model(get_model(config), Path(config.output_dir), config)
     best_model.to(config.device)
+
+    log.info("Computing the test metrics...")
+    test_loss(model, config, test, test_std, normalizer)
 
     if config.pipeline_plotting:
         log.info("Generating plots...")
