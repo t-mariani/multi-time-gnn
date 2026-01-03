@@ -1,16 +1,28 @@
 import mne
 from scipy.signal import butter, filtfilt, resample
 
-def highpass_filter(data, fs, cutoff):
-    """Apply a high-pass Butterworth
+def frequency_filter(data, fs, low_cutoff:float= None, high_cutoff:float=None):
+    """Apply either low/high/band-pass Butterworth depending on provided cutoffs.
     Args:
         data: np.ndarray, shape (..., time)
         fs: float, sampling frequency in Hz
-        cutoff: float, cutoff frequency in Hz
+        low_cutoff: float, cutoff frequency for lowpass in Hz
+        high_cutoff: float, cutoff frequency for highpass in Hz
     """
     nyquist = fs / 2
-    normal_cutoff = cutoff / nyquist
-    b, a = butter(4, normal_cutoff, btype='high', analog=False) # 4th order Butterworth
+    if low_cutoff is not None and high_cutoff is not None:
+        normal_cutoff = [low_cutoff / nyquist, high_cutoff / nyquist]
+        btype = "band"
+    elif low_cutoff is not None:
+        normal_cutoff = low_cutoff / nyquist
+        btype = "high"
+    elif high_cutoff is not None:
+        normal_cutoff = high_cutoff / nyquist
+        btype = "low"
+    else:
+        raise ValueError("At least one of low_cutoff or high_cutoff must be specified")
+    
+    b, a = butter(4, normal_cutoff, btype=btype, analog=False)
     filtered_data = filtfilt(b, a, data, axis=-1)
     return filtered_data
 
@@ -33,6 +45,6 @@ def preprocess_eeg(data, config):
             - path_eeg: path to EEG data to get sampling freq
     """
     sampling_freq =  mne.io.read_raw_bdf(config.path_eeg, preload=False).info["sfreq"]
-    filtered_data = highpass_filter(data, sampling_freq, config.eeg_highpass_cutoff)
+    filtered_data = frequency_filter(data, sampling_freq, config.eeg_lowpass_cutoff, config.eeg_highpass_cutoff)
     resampled_data = resample_data(filtered_data, sampling_freq, config.eeg_target_fs)
     return resampled_data

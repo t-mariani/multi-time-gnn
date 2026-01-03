@@ -7,7 +7,8 @@ loss_kind : l1 # mse, l1
 # Dataset preprocessing
 preprocessing : False # apply preprocessing (filtering + resampling)
 eeg_target_fs : 100 # Target sampling frequency after resampling
-eeg_highpass_cutoff : 50 # High-pass filter cutoff frequency in Hz
+eeg_lowpass_cutoff : 50 # Low-pass filter cutoff frequency in Hz
+eeg_highpass_cutoff : 0.5 # High-pass filter cutoff frequency in Hz
 
 model_kind: MTGNN # if statistical, we take the config from statistical if MTGNN the one from MTGNN
 seed : 42
@@ -19,9 +20,9 @@ tensorboard_dir: "runs"
 
 # dataset
 train_ratio : 0.6
-timepoints_input: 168
-batch_size : 4
-val_batch_size : 16
+timepoints_input: 200
+batch_size : 16
+val_batch_size : 128
 horizon_prediction: 12  # the horizon we want to predict
 
 # Test
@@ -39,7 +40,7 @@ MTGNN:
   alpha : 3 # saturation parameter in graph layer
   k : 2 # Step in mix hop = depth of propagation
   beta : 0.05 # ratio of retained info from root node  
-  k_sparsity: 20 # Number of edges to keep per node in graph sparsification
+  k_sparsity: [10, 15, 20] # Number of edges to keep per node in graph sparsification
   p_dropout: 0.3 # Dropout after time convolution module
   embedding_dim : 40 # Dimension of captors embeddings for the graph computation
   enable_layer_norm: True
@@ -48,9 +49,8 @@ MTGNN:
   intermediate_output_channels: 64 # dimension of last conv layer before projecting to horizon  
 
   # Training 
-
-  move_all_device: True
-  n_epoch : 10
+  grid_search: True
+  n_epoch : 5
   nb_iter_per_epoch : 0 # if 0 : everything 
   learning_rate : 0.0001
   weight_decay : 0.00001 # Regularisation L2 
