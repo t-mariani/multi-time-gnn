@@ -98,3 +98,23 @@ def train_loop_ar_local(model, dataset_train, dataset_val, config, writer:"Summa
     model.best_lags = torch.argmin(loss_val_with_lags, axis=0).numpy() + config.lag_min
     log.info(f"Save new model")
     register_model(model, config=config)
+
+
+def extract_all_data(dataset):
+    """
+    Extracts all X and Y data from a PyTorch Dataset into single tensors.
+    """
+    loader = DataLoader(dataset, batch_size=len(dataset), shuffle=False)
+    X_all, Y_all = next(iter(loader))
+    return X_all, Y_all
+
+
+def train_loop_ar_global(model, dataset_train, dataset_val, config):
+    """
+    The training loop for the AR global model
+    """
+    X_train, Y_train = extract_all_data(dataset_train)
+    model.fit(X_train.squeeze(), Y_train.squeeze())
+    log.info(f"Save new model")
+    register_model(model, config=config)
+

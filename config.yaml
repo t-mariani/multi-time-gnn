@@ -18,11 +18,11 @@ log_level : INFO # DEBUG, INFO, WARNING, ERROR
 tensorboard_dir: "runs"
 
 # dataset
-train_ratio : 0.99
+train_ratio : 0.6
 timepoints_input: 168
 batch_size : 4
 val_batch_size : 16
-horizon_prediction: 6  # the horizon we want to predict
+horizon_prediction: 3  # the horizon we want to predict
 
 # Test
 # nb_test : 40
@@ -63,4 +63,7 @@ AR_local:
   lag_min: 1
   lag_max: 10 # not include
   nb_val: 1  # 20 a good number
+
+AR_global:
+  device: cpu
 

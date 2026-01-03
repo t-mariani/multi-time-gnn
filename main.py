@@ -5,7 +5,7 @@ from torchinfo import summary
 
 from multi_time_gnn.model import get_model
 from multi_time_gnn.dataset import get_normalizer, read_dataset, TimeSeriesDataset, split_train_val_test
-from multi_time_gnn.training import train_loop_mtgnn, train_loop_ar_local
+from multi_time_gnn.training import train_loop_mtgnn, train_loop_ar_local, train_loop_ar_global
 from multi_time_gnn.visualization import pipeline_plotting
 from multi_time_gnn.utils import get_tensorboard_writer, load_config, get_logger, load_model, register_model, set_all_global_seed, keep_config_model_kind
 from multi_time_gnn.horizon import horizon_computing
@@ -83,6 +83,8 @@ if __name__ == "__main__":
             train_loop_mtgnn(model, dataset_train, dataset_val, config, normalizer, optimizer, writer)
         elif config.model_kind == "AR_local":
             train_loop_ar_local(model, dataset_train, dataset_val, config, writer)
+        elif config.model_kind == "AR_global":
+            train_loop_ar_global(model, dataset_train, dataset_val, config)
     except KeyboardInterrupt:
         log.warning("Training interrupted by user.")
 
