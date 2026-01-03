@@ -105,7 +105,7 @@ def predict_multi_step(model, input_sequence, n_steps):
         for _ in tqdm(range(n_steps)):
             y_pred, _ = model(input_seq)
 
-            # for the statistical model
+            # for the AR_local model
             if len(y_pred.shape) == 1:
                 y_pred = y_pred[None, None, :, None]
 

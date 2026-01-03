@@ -210,6 +210,8 @@ def get_model(config):
         return NextStepModelMTGNN
     elif config.model_kind == "AR_local":
         return NextStepModelARLocal
+    elif config.model_kind == "AR_global":
+        return NextStepModelAR_global
 
 
 class NextStepModelMTGNN(nn.Module):
@@ -360,3 +362,58 @@ class NextStepModelARLocal():
 
     def eval(self):
         pass
+
+
+import numpy as np
+from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+class NextStepModelAR_global:
+    def __init__(self, regularization=0.0):
+        """
+        Args:
+            regularization: If > 0, uses Ridge (L2) regression for stability.
+                            If 0, uses standard OLS Linear Regression.
+        """
+        if regularization > 0:
+            self.model = Ridge(alpha=regularization)
+        else:
+            self.model = LinearRegression()
+
+    def preprocess(self, X):
+        """
+        Flattens PyTorch/Time-series 3D tensors into Scikit-learn 2D arrays.
+        Input X shape: (num_samples, window_size, num_nodes)
+        Output X shape: (num_samples, window_size * num_nodes)
+        """
+        # If input is a Tensor, convert to numpy
+        if hasattr(X, 'cpu'):
+            X = X.cpu().numpy()
+            
+        num_samples, window_size, num_nodes = X.shape
+        # Flatten time and nodes into a single feature vector
+        return X.reshape(num_samples, window_size * num_nodes)
+
+    def preprocess_y(self, y):
+        """
+        Ensures Y is numpy.
+        Input Y shape: (num_samples, num_nodes) or (num_samples, 1, num_nodes)
+        """
+        if hasattr(y, 'cpu'):
+            y = y.cpu().numpy()
+        
+        # Squeeze out the extra time dimension if it exists (e.g. from [batch, 1, nodes])
+        if len(y.shape) == 3:
+            y = y.squeeze(1)
+            
+        return y
+
+    def fit(self, X_train, y_train):
+        X_flat = self.preprocess(X_train)
+        y_flat = self.preprocess_y(y_train)
+        print(f"Training AR Model on shape: X={X_flat.shape}, y={y_flat.shape}")
+        self.model.fit(X_flat, y_flat)
+
+    def predict(self, X_test):
+        X_flat = self.preprocess(X_test)
+        return self.model.predict(X_flat)

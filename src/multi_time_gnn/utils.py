@@ -24,15 +24,17 @@ def load_config(config_path="config.yaml", return_type: Literal["dict", "box"] =
 
 def keep_config_model_kind(config):
     """
-    if the model kind is statistical, it throws away the MTGNN config
-    if the model kind is MTGNN, it throws away the statistical config
+    if the model kind is AR local, it throws away the MTGNN config
+    if the model kind is MTGNN, it throws away the AR local config
     """
     if config.model_kind == "AR_local":
         config.update(config.AR_local)
+    elif config.model_kind == "AR_global":
+        
     else:
         config.update(config.MTGNN)
     config.pop('MTGNN', None)
-    config.pop('statistical', None)
+    config.pop('AR_global', None)
     return config
 
 

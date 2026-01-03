@@ -72,10 +72,10 @@ def train_loop_mtgnn(model, dataset_train, dataset_val, config, normalizer, opti
             register_model(model, config=config)
 
 
-def train_loop_statistical(model, dataset_train, dataset_val, config, writer:"SummaryWriter"=None):
+def train_loop_ar_local(model, dataset_train, dataset_val, config, writer:"SummaryWriter"=None):
     """
-    The training loop for the statistical model
-    The goal is just to find the best lag for each channel for our local statistical model
+    The training loop for the AR local model
+    The goal is just to find the best lag for each channel for our local AR local model
     We only use validation to find the best lag
     """
     train_loader = DataLoader(dataset_train, batch_size=1, shuffle=True)
@@ -85,7 +85,7 @@ def train_loop_statistical(model, dataset_train, dataset_val, config, writer:"Su
     nb_lags = config.lag_max - config.lag_min
     loss_val_with_lags = torch.empty((nb_lags, config.N))
 
-    log.info(f"Finding the best lag for our statistical model...")
+    log.info(f"Finding the best lag for our AR local model...")
     for nb_lag, lag in tqdm(enumerate(range(config.lag_min, config.lag_max))):
         loss_lag = torch.zeros((config.N))
         for x_val, y_val in val_loader:
