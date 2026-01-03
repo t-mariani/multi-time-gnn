@@ -208,8 +208,8 @@ class OutputModule(nn.Module):
 def get_model(config):
     if config.model_kind == "MTGNN":
         return NextStepModelMTGNN
-    elif config.model_kind == "statistical":
-        return NextStepModelAR
+    elif config.model_kind == "AR_local":
+        return NextStepModelARLocal
 
 
 class NextStepModelMTGNN(nn.Module):
@@ -305,9 +305,10 @@ class NextStepModelMTGNN(nn.Module):
         return next_point, loss
 
 
-class NextStepModelAR():
+class NextStepModelARLocal():
     def __init__(self, config):
         self.best_lags = np.ones(config.N, dtype=np.int8)
+        self.horizon = config.horizon_prediction
 
     def inference(self, input, y, lags):
         input = input.numpy().squeeze()
@@ -315,9 +316,14 @@ class NextStepModelAR():
             lags = self.best_lags
         result = np.empty((input.shape[0]))
         for chanel_number, time_serie in enumerate(input):
-            model = AutoReg(time_serie, lags=lags[chanel_number], trend='c')
+            # the next only take from (t - p - horion, t - horizon) so by trying to predict t+1, we actually predict horizon timestamps in the future
+            model_lags = list(range(self.horizon, self.horizon + lags[chanel_number]))
+            model = AutoReg(time_serie, lags=model_lags, trend='c')
             model_fit = model.fit()
-            pred = model_fit.predict(start=len(time_serie), end=len(time_serie), dynamic=False)
+
+            # We want T + h - 1 (since h=1 is the immediate next step T).
+            target_index = len(time_serie) + self.horizon - 1
+            pred = model_fit.predict(start=target_index, end=target_index, dynamic=False)
             result[chanel_number] = pred.item()
         if y is None:
             return torch.from_numpy(result), None

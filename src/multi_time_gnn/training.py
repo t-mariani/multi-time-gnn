@@ -95,6 +95,6 @@ def train_loop_statistical(model, dataset_train, dataset_val, config, writer:"Su
             loss_lag += loss
         loss_val_with_lags[nb_lag, :] = loss_lag
     # Keeping the best model
-    model.best_lags = torch.argmin(loss_val_with_lags, axis=0).numpy()
+    model.best_lags = torch.argmin(loss_val_with_lags, axis=0).numpy() + config.lag_min
     log.info(f"Save new model")
     register_model(model, config=config)
