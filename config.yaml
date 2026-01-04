@@ -1,7 +1,7 @@
 # Dataset 
-dataset_name : solar
-path_eeg: None # ../ds002778/sub-hc2/ses-hc/eeg/sub-hc2_ses-hc_task-rest_eeg.bdf # put None if you don't want to use eeg otherwise the path
-normalization_method : max # zscore, minmax, max, none
+dataset_name : eeg
+path_eeg: ../ds002778/sub-hc2/ses-hc/eeg/sub-hc1_ses-hc_task-rest_eeg.bdf # put None if you don't want to use eeg otherwise the path
+normalization_method : zscore # zscore, minmax, max, none
 loss_kind : l1 # mse, l1
 
 # Dataset preprocessing
@@ -20,7 +20,7 @@ tensorboard_dir: "runs"
 
 # dataset
 train_ratio : 0.6
-timepoints_input: 168
+timepoints_input: 100
 batch_size : 4
 val_batch_size : 16
 horizon_prediction: 3  # the horizon we want to predict
@@ -40,7 +40,7 @@ MTGNN:
   alpha : 3 # saturation parameter in graph layer
   k : 2 # Step in mix hop = depth of propagation
   beta : 0.05 # ratio of retained info from root node  
-  k_sparsity: [10, 15, 20] # Number of edges to keep per node in graph sparsification
+  k_sparsity: 15 # Number of edges to keep per node in graph sparsification
   p_dropout: 0.3 # Dropout after time convolution module
   embedding_dim : 40 # Dimension of captors embeddings for the graph computation
   enable_layer_norm: True
@@ -52,8 +52,8 @@ MTGNN:
   grid_search: True
   n_epoch : 5
   nb_iter_per_epoch : 0 # if 0 : everything 
-  learning_rate : 0.0001
-  weight_decay : 0.00001 # Regularisation L2 
+  learning_rate : 0.001
+  weight_decay : 0.0001 # Regularisation L2 
 
 
 AR_local: 
