@@ -52,12 +52,14 @@ Due to the non-stationary nature of EEG signals, we implement a strict preproces
 
 ### 💻 Installation
 
-This project manages dependencies using **[Pixi](https://prefix.dev/)**.
+This project manages dependencies using **[Poetry](https://python-poetry.org)**.
 
 **Install dependencies and environment:**
-    ```bash
-    pixi install
-    ```
+
+```
+pip install poetry
+poetry install
+```
 
 ---
 
@@ -68,7 +70,7 @@ Below is a minimal run sketch to train and evaluate on one dataset. Adjust paths
 2) Run training (example):
 
 ```bash
-pixi run python main.py
+poetry run python main.py
 ```
 
 Outputs include TensorBoard logs (under `saved_models/.../runs/`), and best model weights.
