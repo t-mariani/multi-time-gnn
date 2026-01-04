@@ -11,7 +11,7 @@ def frequency_filter(data, fs, low_cutoff:float= None, high_cutoff:float=None):
     """
     nyquist = fs / 2
     if low_cutoff is not None and high_cutoff is not None:
-        normal_cutoff = [low_cutoff / nyquist, high_cutoff / nyquist]
+        normal_cutoff = [high_cutoff / nyquist, low_cutoff / nyquist]
         btype = "band"
     elif low_cutoff is not None:
         normal_cutoff = low_cutoff / nyquist
