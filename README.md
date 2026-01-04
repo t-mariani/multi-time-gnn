@@ -73,13 +73,13 @@ pixi run python main.py
 
 Outputs include TensorBoard logs (under `saved_models/.../runs/`), and best model weights.
 
-- If you want to use the AR model, change config: 
+- If you want to use the AR model, change config.yaml: 
 
 ```
 model_kind: AR_global
 ```
 
-- If you want to use the MTGNN, change config:
+- If you want to use the MTGNN, change config.yaml:
 
 ```
 model_kind: MTGNN
@@ -88,7 +88,7 @@ model_kind: MTGNN
 
 ### The dataset
 
-- If you want to change the dataset, change config:
+- If you want to change the dataset, change config.yaml:
 ```
 dataset_name : solar # or electricity / traffic / exchange
 ``` 
