@@ -44,12 +44,13 @@ def model_train_loop(config, dataset_train, dataset_val, normalizer):
     writer = get_tensorboard_writer(config)
     log.info(f"TensorBoard logging enabled in: {config.output_dir}/{config.tensorboard_dir}")
 
+    val_loss = None
     log.info("Starting training...")
     try:
         if config.model_kind == "MTGNN":
             val_loss = train_loop_mtgnn(model, dataset_train, dataset_val, config, normalizer, optimizer, writer)
         elif config.model_kind == "statistical":
-            train_loop_statistical(model, dataset_train, dataset_val, config, writer)
+            val_loss = train_loop_statistical(model, dataset_train, dataset_val, config, writer)
     except KeyboardInterrupt:
         log.warning("Training interrupted by user.")
 
@@ -95,7 +96,14 @@ if __name__ == "__main__":
     # Update config with dataset specific parameters
     config.N = n_capteur
 
-    if hasattr(config, 'grid_search') and config.grid_search:
+    if config.model_kind == "MTGNN" and config.device == "auto":
+        config.device = (
+                "cuda"
+                if torch.cuda.is_available()
+                else "mps" if torch.backends.mps.is_available() else "cpu"
+            )
+
+    if config.model_kind == "MTGNN" and config.grid_search:
         log.info("Grid search enabled. Iterating over hyperparameters...")
         
         # Extract grid search parameters
@@ -164,7 +172,7 @@ if __name__ == "__main__":
     best_model.to(config.device)
 
     log.info("Computing the test metrics...")
-    test_loss(model, config, test, test_std, normalizer)
+    test_loss(best_model, config, test, test_std, normalizer)
 
     if config.pipeline_plotting:
         log.info("Generating plots...")

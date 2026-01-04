@@ -44,7 +44,7 @@ def preprocess_eeg(data, config):
             - eeg_target_fs: target sampling frequency
             - path_eeg: path to EEG data to get sampling freq
     """
-    sampling_freq =  mne.io.read_raw_bdf(config.path_eeg, preload=False).info["sfreq"]
+    sampling_freq =  mne.io.read_raw(config.path_eeg, preload=False).info["sfreq"]
     filtered_data = frequency_filter(data, sampling_freq, config.eeg_lowpass_cutoff, config.eeg_highpass_cutoff)
     resampled_data = resample_data(filtered_data, sampling_freq, config.eeg_target_fs)
     return resampled_data
