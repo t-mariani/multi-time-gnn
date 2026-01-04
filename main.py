@@ -152,7 +152,8 @@ if __name__ == "__main__":
                     best_params = dict(zip(param_names, combination))
                     # Copy best model to main output directory
                     for file in Path(current_config.output_dir).glob("*"):
-                        shutil.copy(file, dir_path)
+                        if file.is_file():  
+                            shutil.copy(file, dir_path)
                 
                 log.info(f"Validation loss: {val_loss:.6f}")
             
