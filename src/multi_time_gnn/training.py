@@ -27,8 +27,11 @@ def train_loop_mtgnn(model, dataset_train, dataset_val, config, normalizer, opti
         x_val = x_val.to(config.device)
         y_val = y_val.to(config.device)
         _, loss = model(x_val, y_val)
+        x_val = x_val.squeeze()
+        while len(x_val.shape) < 3:
+            x_val = x_val.unsqueeze(0)
         log_loss_val.append(loss.item())
-        log_loss_ref.append(model.loss(x_val.squeeze()[:, :, -1], y_val))
+        log_loss_ref.append(model.loss(x_val[:, :, -1], y_val))
     ref_value = sum(log_loss_ref) / len(log_loss_ref)
     log.info(f"Starting Epoch 0: val: {(sum(log_loss_val) / len(log_loss_val)):.4f} - ref: {ref_value:.4f}")
 
