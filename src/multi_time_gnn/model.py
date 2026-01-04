@@ -89,21 +89,13 @@ class MixHopPropagationLayer(nn.Module):
     def forward(self, Hin, A):
         """
         B: batch dimension
-        C: b of channels  ## what is a channel, not clear
+        C: b of channels
         N: nb captors
         T: length of the time series
         """
         # Hin : BxCxNxT
         graph = A  # NxN
         # graph = torch.detach(A)  # We need to compute the gradients during the optimisation
-        # I think that we need to not detach A from the graph otherwise we will never learn the graph and just have a random one
-
-        ## In order to speed up the compute of Dmoins1, we can parallelise it with torch:
-        # Dmoins1 = torch.diag(
-        #     torch.tensor(
-        #         [1 / (1 + torch.sum((graph[i, :]))) for i in range(self.config.N)]
-        #     )
-        # )
         row_sums = torch.sum(graph, dim=1)
         Dmoins1 = torch.diag(1 / (1 + row_sums))  # NxN
         log.debug(Dmoins1.shape)
@@ -308,6 +300,7 @@ class NextStepModelMTGNN(nn.Module):
 class NextStepModelAR():
     def __init__(self, config):
         self.best_lags = np.ones(config.N, dtype=np.int8)
+        self.horizon = config.horizon_prediction
 
     def inference(self, input, y, lags):
         input = input.numpy().squeeze()
@@ -317,8 +310,8 @@ class NextStepModelAR():
         for chanel_number, time_serie in enumerate(input):
             model = AutoReg(time_serie, lags=lags[chanel_number], trend='c')
             model_fit = model.fit()
-            pred = model_fit.predict(start=len(time_serie), end=len(time_serie), dynamic=False)
-            result[chanel_number] = pred.item()
+            pred = model_fit.predict(start=len(time_serie), end=len(time_serie) + self.horizon - 1, dynamic=False)
+            result[chanel_number] = pred[-1].item()
         if y is None:
             return torch.from_numpy(result), None
         else:
