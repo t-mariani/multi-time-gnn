@@ -4,6 +4,7 @@ from multi_time_gnn.dataset import get_normalizer, read_dataset, split_train_val
 from multi_time_gnn.horizon import horizon_computing
 from multi_time_gnn.model import get_model
 from multi_time_gnn.preprocessing import preprocess_eeg
+from multi_time_gnn.test import test_loss
 from multi_time_gnn.visualization import pipeline_plotting
 from multi_time_gnn.utils import get_logger, load_config, get_latest_dir, load_model
 
@@ -35,8 +36,13 @@ if __name__ == "__main__":
     normalizer = get_normalizer(config.normalization_method, train)
     test = normalizer.normalize(test)
 
-    log.info("Generating plots...")
-    pipeline_plotting(model, test, normalizer, config)
+    log.info("Computing the test metrics...")
+    test_loss(model, config, test, test.std(), normalizer)
 
-    log.info("Computing the horizon...")
-    horizon_computing(model, test, config, normalizer, list_horizon=config.list_horizon)
+    if config.pipeline_plotting:
+        log.info("Generating plots...")
+        pipeline_plotting(model, test, normalizer, config)
+
+    if config.plotting_horizon:
+        log.info("Computing the horizon...")
+        horizon_computing(model, test, config, normalizer, list_horizon=config.list_horizon)

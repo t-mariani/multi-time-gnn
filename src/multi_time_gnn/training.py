@@ -71,6 +71,8 @@ def train_loop_mtgnn(model, dataset_train, dataset_val, config, normalizer, opti
             best_val_loss = loss_val
             register_model(model, config=config)
 
+    return best_val_loss
+
 
 def train_loop_ar_local(model, dataset_train, dataset_val, config, writer:"SummaryWriter"=None):
     """

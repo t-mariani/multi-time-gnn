@@ -34,7 +34,7 @@ def read_dataset(
             data = f.readlines()
             data = [list(map(float, line.strip().split(","))) for line in data]
     else:
-        raw = mne.io.read_raw_bdf(path_eeg, preload=True)
+        raw = mne.io.read_raw(path_eeg, preload=True)
         data = raw.get_data().T
     return np.array(
         data
