@@ -6,6 +6,7 @@ from torch.nn.functional import tanh, relu, sigmoid
 from torch.nn import MSELoss
 from statsmodels.tsa.ar_model import AutoReg
 from sklearn.metrics import mean_squared_error
+from tqdm import tqdm
 
 from multi_time_gnn.utils import get_logger
 
@@ -200,8 +201,10 @@ class OutputModule(nn.Module):
 def get_model(config):
     if config.model_kind == "MTGNN":
         return NextStepModelMTGNN
-    elif config.model_kind == "statistical":
-        return NextStepModelAR
+    elif config.model_kind == "AR_local":
+        return NextStepModelARLocal
+    elif config.model_kind == "AR_global":
+        return NextStepModelAR_global
 
 
 class NextStepModelMTGNN(nn.Module):
@@ -297,7 +300,7 @@ class NextStepModelMTGNN(nn.Module):
         return next_point, loss
 
 
-class NextStepModelAR():
+class NextStepModelARLocal():
     def __init__(self, config):
         self.best_lags = np.ones(config.N, dtype=np.int8)
         self.horizon = config.horizon_prediction
@@ -308,7 +311,9 @@ class NextStepModelAR():
             lags = self.best_lags
         result = np.empty((input.shape[0]))
         for chanel_number, time_serie in enumerate(input):
-            model = AutoReg(time_serie, lags=lags[chanel_number], trend='c')
+            # the next only take from (t - p - horion, t - horizon) so by trying to predict t+1, we actually predict horizon timestamps in the future
+            model_lags = list(range(self.horizon, self.horizon + lags[chanel_number]))
+            model = AutoReg(time_serie, lags=model_lags, trend='c')
             model_fit = model.fit()
             pred = model_fit.predict(start=len(time_serie), end=len(time_serie) + self.horizon - 1, dynamic=False)
             result[chanel_number] = pred[-1].item()
@@ -343,6 +348,65 @@ class NextStepModelAR():
 
 
     def to(self, *args):
+        pass
+
+    def eval(self):
+        pass
+
+
+import numpy as np
+from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+class NextStepModelAR_global:
+    def __init__(self, config):
+        """
+        """
+        self.models = []
+        self.kind_model = config.loss_kind   
+
+    def preprocess_X(self, X):
+        if hasattr(X, 'cpu'):
+            X = X.cpu().numpy()
+        return X
+
+    def preprocess_y(self, y):
+        """
+        Reshapes Y to match the stacked X.
+        Input Y: (nb_elem, nb_channel) or (nb_elem, nb_channel, 1)
+        Output Y: (nb_elem * nb_channel)
+        """
+        if hasattr(y, 'cpu'):
+            y = y.cpu().numpy()
+        return y
+
+    def get_model(self):
+        """Give the model with the right loss"""
+        if self.kind_model == "mse":
+            return Ridge(alpha=0.)
+        elif self.kind_model == "l1":
+            return LinearRegression()     
+
+
+    def fit(self, X_train, y_train):
+        X = self.preprocess_X(X_train)
+        y = self.preprocess_y(y_train)
+        for nb_channel in tqdm(range(X.shape[1])):
+            self.models.append(self.get_model())
+            self.models[-1].fit(X[:, nb_channel, :], y[:, nb_channel])
+        
+
+    def predict(self, X_test):
+        Y_predict = np.empty((X_test.shape[0], X_test.shape[1]))
+        for nb_channel, model in enumerate(self.models):
+            Y_predict[:, nb_channel] = model.predict(X_test[:, nb_channel, :])
+        return Y_predict
+
+    def __call__(self, input, y):
+        y_pred = self.predict(input.squeeze())
+        return torch.from_numpy(y_pred), None
+
+    def to(self, device):
         pass
 
     def eval(self):

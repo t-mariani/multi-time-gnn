@@ -9,7 +9,7 @@ preprocessing : False # apply preprocessing (filtering + resampling)
 eeg_target_fs : 100 # Target sampling frequency after resampling
 eeg_highpass_cutoff : 50 # High-pass filter cutoff frequency in Hz
 
-model_kind: MTGNN # if statistical, we take the config from statistical if MTGNN the one from MTGNN
+model_kind: AR_global #  MTGNN, AR_local, AR_global
 seed : 42
 
 # Logging 
@@ -22,7 +22,7 @@ train_ratio : 0.6
 timepoints_input: 168
 batch_size : 4
 val_batch_size : 16
-horizon_prediction: 12  # the horizon we want to predict
+horizon_prediction: 3  # the horizon we want to predict
 
 # Test
 # nb_test : 40
@@ -56,11 +56,14 @@ MTGNN:
   weight_decay : 0.00001 # Regularisation L2 
 
 
-statistical: 
+AR_local: 
   device: cpu
 
-  # choosing the range of the lag for the statistical model
+  # choosing the range of the lag for the AR model
   lag_min: 1
-  lag_max: 20 # not include
-  nb_val: 3  # 20 a good number
+  lag_max: 10 # not include
+  nb_val: 1  # 20 a good number
+
+AR_global:
+  device: cpu
 

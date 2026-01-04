@@ -9,6 +9,7 @@ import torch
 import yaml
 from box import Box
 from torch.utils.tensorboard import SummaryWriter
+import joblib
 
 
 def load_config(config_path="config.yaml", return_type: Literal["dict", "box"] = "box"):
@@ -24,15 +25,18 @@ def load_config(config_path="config.yaml", return_type: Literal["dict", "box"] =
 
 def keep_config_model_kind(config):
     """
-    if the model kind is statistical, it throws away the MTGNN config
-    if the model kind is MTGNN, it throws away the statistical config
+    if the model kind is AR local, it throws away the MTGNN config
+    if the model kind is MTGNN, it throws away the AR local config
     """
-    if config.model_kind == "statistical":
-        config.update(config.statistical)
+    if config.model_kind == "AR_local":
+        config.update(config.AR_local)
+    elif config.model_kind == "AR_global":
+        config.update(config.AR_global)
     else:
         config.update(config.MTGNN)
     config.pop('MTGNN', None)
-    config.pop('statistical', None)
+    config.pop('AR_global', None)
+    config.pop('AR_local', None)
     return config
 
 
@@ -63,8 +67,10 @@ def register_model(model: torch.nn.Module, config: Box ):
     if config.model_kind == "MTGNN":
         model_path = dir_path / (model.__class__.__name__ + ".pt")
         torch.save(model.state_dict(), model_path)
-    elif config.model_kind == "statistical":
+    elif config.model_kind == "AR_local":
         np.save(f'{dir_path}/model.npy', model.best_lags)
+    elif config.model_kind == "AR_global":
+        joblib.dump(model, f'{dir_path}/model')
     
     # Save config for reproducibility
     cfg_path = dir_path / "config.yaml"
@@ -80,10 +86,12 @@ def load_model(
         model_path = model_dir / (model_class.__name__ + ".pt")
         model.load_state_dict(torch.load(model_path))
         model.eval()
-    elif config.model_kind == "statistical":
+    elif config.model_kind == "AR_local":
         model = model_class(config)
         model_path = model_dir / ("model.npy")
         model.best_lags = np.load(model_path)
+    elif config.model_kind == "AR_global":
+        model = joblib.load(model_dir / ("model"))
     return model
 
 
