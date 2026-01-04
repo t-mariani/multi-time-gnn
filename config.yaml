@@ -1,41 +1,69 @@
 # Dataset 
-dataset_name : eeg
-path_eeg: ../ds002778/sub-hc2/ses-hc/eeg/sub-hc2_ses-hc_task-rest_eeg.bdf # put None if you don't want to use eeg otherwise the path
-normalization_method : zscore # zscore, minmax, none
+dataset_name : solar
+path_eeg: None # ../ds002778/sub-hc2/ses-hc/eeg/sub-hc2_ses-hc_task-rest_eeg.bdf # put None if you don't want to use eeg otherwise the path
+normalization_method : max # zscore, minmax, max, none
+loss_kind : l1 # mse, l1
+
+# Dataset preprocessing
 preprocessing : False # apply preprocessing (filtering + resampling)
 eeg_target_fs : 100 # Target sampling frequency after resampling
-eeg_highpass_cutoff : 1.0 # High-pass filter cutoff frequency in Hz
+eeg_highpass_cutoff : 50 # High-pass filter cutoff frequency in Hz
 
-# Architecture Hyperparemeter 
-m : 4 # Number of graph convolution module AND temporal conv module 
-alpha : 3 # saturation parameter in graph layer
-k : 2 # Step in mix hop = depth of propagation
-beta : 0.05 # ratio of retained info from root node  
-k_sparsity: 20 # Number of edges to keep per node in graph sparsification
-p_dropout: 0.3 # Dropout after time convolution module
-embedding_dim : 40 # Dimension of captors embeddings for the graph computation
-enable_layer_norm: True
-residual_channels: 16 # Channels for the main loop, define time convolution module, divisible by 4
-skip_layer_channels: 32 # before output module, number of channels of each block output 
-intermediate_output_channels: 64 # dimension of last conv layer before projecting to horizon  
-timepoints_input: 168
-
-# Training 
-batch_size : 16
-val_batch_size : 128
-n_epoch : 50
-train_ratio : 0.9
-nb_iter_per_epoch : 200 # if 0 : everything 
-learning_rate : 0.001
-weight_decay : 0.0001 # Regularisation L2 
-device : auto # auto, cuda, cpu, mps
+model_kind: AR_global #  MTGNN, AR_local, AR_global
 seed : 42
 
 # Logging 
 log_each : 1
 log_level : INFO # DEBUG, INFO, WARNING, ERROR
 tensorboard_dir: "runs"
-list_horizon: [3, 6, 12, 24]
+
+# dataset
+train_ratio : 0.6
+timepoints_input: 168
+batch_size : 4
+val_batch_size : 16
+horizon_prediction: 3  # the horizon we want to predict
 
 # Test
-nb_test : 40
+# nb_test : 40
+# list_horizon: [3,6,12,24]
+
+# Plotting
+pipeline_plotting: False
+plotting_horizon: False
+
+MTGNN:
+  # Architecture Hyperparemeter 
+  device : auto # auto, cuda, cpu, mps
+  m : 4 # Number of graph convolution module AND temporal conv module 
+  alpha : 3 # saturation parameter in graph layer
+  k : 2 # Step in mix hop = depth of propagation
+  beta : 0.05 # ratio of retained info from root node  
+  k_sparsity: 20 # Number of edges to keep per node in graph sparsification
+  p_dropout: 0.3 # Dropout after time convolution module
+  embedding_dim : 40 # Dimension of captors embeddings for the graph computation
+  enable_layer_norm: True
+  residual_channels: 16 # Channels for the main loop, define time convolution module, divisible by 4
+  skip_layer_channels: 32 # before output module, number of channels of each block output 
+  intermediate_output_channels: 64 # dimension of last conv layer before projecting to horizon  
+
+  # Training 
+
+  move_all_device: True
+  n_epoch : 10
+  nb_iter_per_epoch : 0 # if 0 : everything 
+  learning_rate : 0.0001
+  weight_decay : 0.00001 # Regularisation L2 
+
+
+AR_local: 
+  device: cpu
+
+  # choosing the range of the lag for the AR model
+  lag_min: 1
+  lag_max: 10 # not include
+  nb_val: 1  # 20 a good number
+
+AR_global:
+  device: cpu
+

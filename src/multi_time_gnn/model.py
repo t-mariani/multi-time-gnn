@@ -1,8 +1,12 @@
 from einops import rearrange
+import numpy as np
 import torch
 from torch import nn
 from torch.nn.functional import tanh, relu, sigmoid
 from torch.nn import MSELoss
+from statsmodels.tsa.ar_model import AutoReg
+from sklearn.metrics import mean_squared_error
+from tqdm import tqdm
 
 from multi_time_gnn.utils import get_logger
 
@@ -79,35 +83,30 @@ class MixHopPropagationLayer(nn.Module):
                 nn.Linear(
                     config.residual_channels, config.residual_channels, bias=False
                 )
-                for _ in range(config.k)
+                for _ in range(config.k + 1)
             ]
         )
 
     def forward(self, Hin, A):
         """
         B: batch dimension
-        C: b of channels  ## what is a channel, not clear
+        C: b of channels
         N: nb captors
         T: length of the time series
         """
         # Hin : BxCxNxT
         graph = A  # NxN
         # graph = torch.detach(A)  # We need to compute the gradients during the optimisation
-        # I think that we need to not detach A from the graph otherwise we will never learn the graph and just have a random one
-
-        ## In order to speed up the compute of Dmoins1, we can parallelise it with torch:
-        # Dmoins1 = torch.diag(
-        #     torch.tensor(
-        #         [1 / (1 + torch.sum((graph[i, :]))) for i in range(self.config.N)]
-        #     )
-        # )
         row_sums = torch.sum(graph, dim=1)
         Dmoins1 = torch.diag(1 / (1 + row_sums))  # NxN
         log.debug(Dmoins1.shape)
         Atilde = Dmoins1 @ (A + torch.eye(self.config.N, device=self.config.device))  # NxN
 
         Hprev = Hin
-        Hout = 0
+        Hout = rearrange(
+            self.mlps[0](rearrange(Hprev, "b c n t -> b n t c")),
+            "b n t c -> b c n t"
+            )
         for i in range(self.config.k):
             graph_times_hprev = torch.einsum(
                 "n m, bcnt -> b c m t", Atilde, Hprev
@@ -119,7 +118,7 @@ class MixHopPropagationLayer(nn.Module):
             )  # BxCxNxT
             log.debug(f"hprev shape :{Hprev.shape}")
             Hout += rearrange(
-                self.mlps[i](rearrange(Hprev, "b c n t -> b n t c")),
+                self.mlps[i + 1](rearrange(Hprev, "b c n t -> b n t c")),
                 "b n t c -> b c n t",
             )
         return Hout  # BxCxNxT
@@ -132,14 +131,14 @@ class GraphConvolutionModule(nn.Module):
         self.right_mix_hop = MixHopPropagationLayer(config)
 
     def forward(self, x, A: torch.Tensor):
-        return self.left_mix_hop(x, A) + self.left_mix_hop(x, A.T)
+        return self.left_mix_hop(x, A) + self.right_mix_hop(x, A.T)
 
 
 class DilatedInceptionLayer(nn.Module):
     def __init__(self, config, d):
         super().__init__()
         out_channel = config.residual_channels // 4
-        conv_size = [2, 3, 5, 7]
+        conv_size = [2, 3, 6, 7]
         self.convs = []
         for size in conv_size:
             self.convs.append(
@@ -173,7 +172,7 @@ class TimeConvolutionModule(nn.Module):
         self.right_dilated_incep = DilatedInceptionLayer(config, d)
 
     def forward(self, x):
-        return tanh(self.left_dilated_incep(x)) + sigmoid(self.right_dilated_incep(x))
+        return tanh(self.left_dilated_incep(x)) * sigmoid(self.right_dilated_incep(x))
 
 
 class OutputModule(nn.Module):
@@ -193,14 +192,22 @@ class OutputModule(nn.Module):
 
     def forward(self, x):
         log.debug(f"output x shape : {x.shape}")
-        x = relu(x)
         x = relu(self.end_conv_1(x))
         log.debug(f"output x shape endconv1 : {x.shape}")
         x = self.end_conv_2(x)
         return x
 
 
-class NextStepModel(nn.Module):
+def get_model(config):
+    if config.model_kind == "MTGNN":
+        return NextStepModelMTGNN
+    elif config.model_kind == "AR_local":
+        return NextStepModelARLocal
+    elif config.model_kind == "AR_global":
+        return NextStepModelAR_global
+
+
+class NextStepModelMTGNN(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -226,9 +233,13 @@ class NextStepModel(nn.Module):
             for i in range(config.m)
         ]
         log.debug(f"List Li (number of timepoints after each block) : {list_Li}")
-        self.layer_norm = nn.ModuleList(
-            [nn.LayerNorm((config.residual_channels, config.N, Li)) for Li in list_Li]
-        )
+        # self.layer_norm = nn.ModuleList(
+        #     [nn.LayerNorm((config.residual_channels, config.N, Li)) for Li in list_Li]
+        # )
+        self.layer_norm = nn.ModuleList([
+            nn.LayerNorm(config.residual_channels) 
+            for _ in range(config.m)
+        ])
         self.skip_layer = nn.ModuleList(
             [
                 nn.Conv2d(
@@ -246,7 +257,10 @@ class NextStepModel(nn.Module):
         )
         self.output_module = OutputModule(config)
 
-        self.loss = MSELoss()
+        if config.loss_kind == "mse":
+            self.loss = MSELoss()
+        elif config.loss_kind == "l1":
+            self.loss = nn.L1Loss()
 
     def forward(self, input, y=None, v=None):
         graph = self.graph_learn(v)  # NxN
@@ -265,7 +279,9 @@ class NextStepModel(nn.Module):
             x2 = self.graphCM[i](x1, graph)  # BxCxNxT'
             log.debug(f"x shape graphCM, block {i}: {x2.shape}")
             if self.config.enable_layer_norm:
-                x2 = self.layer_norm[i](x2)  # BxCxNxT'
+                x2 = x2.permute(0, 2, 3, 1) # BxNxT'xC
+                x2 = self.layer_norm[i](x2)
+                x2 = x2.permute(0, 3, 1, 2)
 
             x = (
                 x2 + residual[:, :, :, -x2.size(3) :]
@@ -282,3 +298,116 @@ class NextStepModel(nn.Module):
         log.debug(f"Compared y : {y.shape}")
         loss = self.loss(next_point.squeeze(), y.squeeze())
         return next_point, loss
+
+
+class NextStepModelARLocal():
+    def __init__(self, config):
+        self.best_lags = np.ones(config.N, dtype=np.int8)
+        self.horizon = config.horizon_prediction
+
+    def inference(self, input, y, lags):
+        input = input.numpy().squeeze()
+        if lags is None:
+            lags = self.best_lags
+        result = np.empty((input.shape[0]))
+        for chanel_number, time_serie in enumerate(input):
+            # the next only take from (t - p - horion, t - horizon) so by trying to predict t+1, we actually predict horizon timestamps in the future
+            model_lags = list(range(self.horizon, self.horizon + lags[chanel_number]))
+            model = AutoReg(time_serie, lags=model_lags, trend='c')
+            model_fit = model.fit()
+            pred = model_fit.predict(start=len(time_serie), end=len(time_serie) + self.horizon - 1, dynamic=False)
+            result[chanel_number] = pred[-1].item()
+        if y is None:
+            return torch.from_numpy(result), None
+        else:
+            y = y.numpy().squeeze()
+            return torch.from_numpy(result), torch.from_numpy((result - y) ** 2)
+
+
+    def __call__(self, input, y=None, lags=None, one_loss=True):
+        if len(input.squeeze().shape) > 2:
+            nb_predictions = input.shape[0]
+            mean_loss = torch.zeros((input.shape[-2]))
+            results = torch.empty((nb_predictions, input.shape[-2]))
+            for k in range(nb_predictions):
+                if y is None:
+                    result = self.inference(input[k], y, lags)
+                else:
+                    result, loss = self.inference(input[k], y[k], lags)
+                    mean_loss += loss
+                results[k, :] = result
+            if y is not None:
+                mean_loss = mean_loss / nb_predictions
+                if one_loss:
+                    mean_loss = mean_loss.mean()
+                return results, mean_loss.mean()
+            else:
+                return results, None
+        else:
+            return self.inference(input, y, lags)
+
+
+    def to(self, *args):
+        pass
+
+    def eval(self):
+        pass
+
+
+import numpy as np
+from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+class NextStepModelAR_global:
+    def __init__(self, config):
+        """
+        """
+        self.models = []
+        self.kind_model = config.loss_kind   
+
+    def preprocess_X(self, X):
+        if hasattr(X, 'cpu'):
+            X = X.cpu().numpy()
+        return X
+
+    def preprocess_y(self, y):
+        """
+        Reshapes Y to match the stacked X.
+        Input Y: (nb_elem, nb_channel) or (nb_elem, nb_channel, 1)
+        Output Y: (nb_elem * nb_channel)
+        """
+        if hasattr(y, 'cpu'):
+            y = y.cpu().numpy()
+        return y
+
+    def get_model(self):
+        """Give the model with the right loss"""
+        if self.kind_model == "mse":
+            return Ridge(alpha=0.)
+        elif self.kind_model == "l1":
+            return LinearRegression()     
+
+
+    def fit(self, X_train, y_train):
+        X = self.preprocess_X(X_train)
+        y = self.preprocess_y(y_train)
+        for nb_channel in tqdm(range(X.shape[1])):
+            self.models.append(self.get_model())
+            self.models[-1].fit(X[:, nb_channel, :], y[:, nb_channel])
+        
+
+    def predict(self, X_test):
+        Y_predict = np.empty((X_test.shape[0], X_test.shape[1]))
+        for nb_channel, model in enumerate(self.models):
+            Y_predict[:, nb_channel] = model.predict(X_test[:, nb_channel, :])
+        return Y_predict
+
+    def __call__(self, input, y):
+        y_pred = self.predict(input.squeeze())
+        return torch.from_numpy(y_pred), None
+
+    def to(self, device):
+        pass
+
+    def eval(self):
+        pass

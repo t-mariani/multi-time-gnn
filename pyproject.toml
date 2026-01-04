@@ -9,7 +9,7 @@ authors = ["Hugo Pavy <hugo.pavy@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<=3.14.12"
+python = ">=3.11,<=3.14.12"
 torch = ">=2.8.0,<3"
 ipykernel = ">=7.0.0,<8"
 torchinfo = ">=1.8.0,<2"
@@ -21,6 +21,8 @@ matplotlib = ">=3.10.7,<4"
 mne = "^1.11.0"
 pybids = "^0.21.0"
 tensorboard = "^2.20.0"
+statsmodels = "^0.14.6"
+scikit-learn = "^1.8.0"
 
 [build-system]
 requires = ["poetry-core"]

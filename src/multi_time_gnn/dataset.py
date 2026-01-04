@@ -29,7 +29,7 @@ def read_dataset(
         raise ValueError(
             f"Unknown dataset: {which}, available are {available_datasets}, nor provide a valid path_eeg {path_eeg} for eeg data."
         )
-    if not path_eeg:
+    if which != "eeg":
         with open(path, "r") as f:
             data = f.readlines()
             data = [list(map(float, line.strip().split(","))) for line in data]
@@ -51,18 +51,21 @@ def split_train_val_test(data, train_ratio=0.7, val_ratio=0.1):
     return train, val, test
 
 class TimeSeriesDataset(Dataset):
-    def __init__(self, data, config, length_prediction=1):
+    def __init__(self, data, config):
         self.data = data
         self.nb_points = config.timepoints_input
         self.device = config.device
-        self.length_prediction = length_prediction
+        self.horizon_prediction = config.horizon_prediction
+
+        assert self.data.shape[1] >= self.nb_points + self.horizon_prediction, \
+            f"Data length {self.data.shape[1]} is too short for input points {self.nb_points} and horizon prediction {self.horizon_prediction}"
 
     def __len__(self):
-        return self.data.shape[-1] - self.nb_points - self.length_prediction
+        return self.data.shape[-1] - self.nb_points - self.horizon_prediction
 
     def __getitem__(self, idx):
         x = self.data[:, idx:idx + self.nb_points]
-        y = self.data[:, idx + self.nb_points: idx + self.nb_points + self.length_prediction].squeeze()
+        y = self.data[:, idx + self.nb_points + self.horizon_prediction].squeeze()
         x = x[None, :, :]  # 1xNxT
         return torch.from_numpy(x).float(), torch.from_numpy(y).float()
 
@@ -76,7 +79,19 @@ class Normalizer:
     @abstractmethod
     def denormalize(self, data):
         pass
+
+class MaxNormalizer(Normalizer):
+    def __init__(self, data_fit: np.ndarray):
+        """data_fit : np.ndarray of shape (N, T) used to compute min and max"""
+        self.data_max = np.abs(data_fit).max(axis=1)
     
+    def normalize(self, data):
+        return data / self.data_max[:, None]
+    
+    def denormalize(self, data):
+        return data * self.data_max[:, None]
+
+
 class ZscoreNormalizer(Normalizer):
     """Z-score Normalizer, normalizes data to have mean 0 and std 1"""
     def __init__(self, data_fit: np.ndarray):
@@ -115,6 +130,8 @@ def get_normalizer(name: str, data_fit: np.ndarray) -> Normalizer:
         return ZscoreNormalizer(data_fit)
     elif name == "minmax":
         return MinMaxNormalizer(data_fit)
+    elif name == "max":
+        return MaxNormalizer(data_fit)
     elif name == "none":
         return NoNormalizer()
     else:
