@@ -99,14 +99,32 @@ In order to download the dataset used in the paper, you can clone this repo: [Re
 
 #### Use of EEG
 
-You can find open EEG data at this link: [open eeg data](https://openneuro.org).
+You can find open EEG data at this link: [open eeg data](https://openneuro.org). In the report, we used this exact dataset with the first patient, first session (sub-001 / run-01): [EEG dataset](https://openneuro.org/datasets/ds003478/versions/1.1.0)
 
 If you want to use it, change the config.yaml:
 
 ```
 dataset_name: eeg,
-path_eeg: {the path to your .bdf eeg}
+path_eeg: {the path to your .bdf or .set eeg file}
 
 ```
+
+---
+### Grid Search
+
+In order to do a grid search, you can change config.yaml:
+
+```
+grid_search: True
+```
+
+And then in order to change a parameter, instead of putting just one element, you can put a list of element. Example with the learning rate:
+
+```
+lr: [0.001, 0.002, 0.01]
+```
+
+Then running `poetry run python main.py` will run the grid search.
+
 
 
