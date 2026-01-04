@@ -74,10 +74,10 @@ def train_loop_mtgnn(model, dataset_train, dataset_val, config, normalizer, opti
     return best_val_loss
 
 
-def train_loop_statistical(model, dataset_train, dataset_val, config, writer:"SummaryWriter"=None):
+def train_loop_ar_local(model, dataset_train, dataset_val, config, writer:"SummaryWriter"=None):
     """
-    The training loop for the statistical model
-    The goal is just to find the best lag for each channel for our local statistical model
+    The training loop for the AR local model
+    The goal is just to find the best lag for each channel for our local AR local model
     We only use validation to find the best lag
     """
     train_loader = DataLoader(dataset_train, batch_size=1, shuffle=True)
@@ -87,7 +87,7 @@ def train_loop_statistical(model, dataset_train, dataset_val, config, writer:"Su
     nb_lags = config.lag_max - config.lag_min
     loss_val_with_lags = torch.empty((nb_lags, config.N))
 
-    log.info(f"Finding the best lag for our statistical model...")
+    log.info(f"Finding the best lag for our AR local model...")
     for nb_lag, lag in tqdm(enumerate(range(config.lag_min, config.lag_max))):
         loss_lag = torch.zeros((config.N))
         for x_val, y_val in val_loader:
@@ -97,6 +97,26 @@ def train_loop_statistical(model, dataset_train, dataset_val, config, writer:"Su
             loss_lag += loss
         loss_val_with_lags[nb_lag, :] = loss_lag
     # Keeping the best model
-    model.best_lags = torch.argmin(loss_val_with_lags, axis=0).numpy()
+    model.best_lags = torch.argmin(loss_val_with_lags, axis=0).numpy() + config.lag_min
     log.info(f"Save new model")
     register_model(model, config=config)
+
+
+def extract_all_data(dataset):
+    """
+    Extracts all X and Y data from a PyTorch Dataset into single tensors.
+    """
+    loader = DataLoader(dataset, batch_size=len(dataset), shuffle=False)
+    X_all, Y_all = next(iter(loader))
+    return X_all, Y_all
+
+
+def train_loop_ar_global(model, dataset_train, dataset_val, config):
+    """
+    The training loop for the AR global model
+    """
+    X_train, Y_train = extract_all_data(dataset_train)
+    model.fit(X_train.squeeze(), Y_train.squeeze())
+    log.info(f"Save new model")
+    register_model(model, config=config)
+
