@@ -1,8 +1,10 @@
-# multi-time-gnn
+# Multivariate Time Series Forecasting with Graph Neural Networks
+## Application to EEG Data
 
-Personal project to implement GNN (Graph neural network) for multivariates time series 
+**Authors:** [Tom Mariani](https://github.com/t-mariani), [Hugo Pavy](https://github.com/hpavy)  
+**Date:** January 2026
 
-First version is based on : 
+This repository contains a PyTorch implementation of the **MTGNN (Multivariate Time Series Graph Neural Network)** architecture, originally proposed by Wu et al. (2020). While the original framework was evaluated on traffic and solar data, this project extends the application to **Electroencephalography (EEG)** data, leveraging learned graph structures to capture inter-channel dependencies in brain activity.
 
 ```bibtex
 @misc{wu2020connectingdotsmultivariatetime,
@@ -16,59 +18,93 @@ First version is based on :
 }
 ```
 
-### Our work
-This project is an implementation of this paper model. We then try to apply this model to EEG data. Our goal is to compare the performance of the deep learning model with classical statistical models. 
+### 🔍 Overview
 
-### The statistical models
-We first try to compare our results with simple univariate statistical models like **AR** or **ARIMA**. Those models have two issues: the EEG are highly non stationary so we should try methods like ARIMA in order to obtain stationarity. And they are just univariate models. We lack the knowledge that all the channels interact with each other. 
+The goal of this work is to study the use of Graph Neural Networks (GNNs) for multivariate time series forecasting. We implement the model from scratch in a modular, object-oriented Python architecture.
 
-We could try models like **VAR** or **VARIMA** to take into account the multivariate problem. However with so many channels we would run quickly out of memory.
+**Key Contributions:**
+* **From-scratch implementation** of the MTGNN architecture using PyTorch.
+* **Adaptation for EEG**: Dedicated preprocessing pipeline (Bandpass filtering, Resampling, Normalization).
+* **Comparison Benchmarks**: Evaluation against Autoregressive (AR) baselines.
+* **Graph Learning**: Visualization of learned adjacency matrices to interpret spatial dependencies between EEG sensors.
+
+You can find the report of our work in the file [report.pdf](report.pdf).
+
+---
+
+### 🧠 Methodology
+
+The model operates on multivariate time series $X \in \mathbb{R}^{N \times T}$ to predict values at a specific horizon $h$. It simultaneously learns an underlying graph structure and performs forecasting.
+
+#### Architecture Components
+1.  **Graph Learning Layer**: Learns an adaptive adjacency matrix $A$ end-to-end, discovering hidden dependencies between sensors without needing a predefined physical topology.
+2.  **Time Convolution Module**: Uses dilated inception layers to extract temporal features (short-term trends and long-term periodicities).
+3.  **Graph Convolution Module**: Fuses information spatially using Mix-Hop propagation based on the learned graph.
+4.  **Output Module**: Aggregates latent representations to generate final predictions.
+
+#### EEG Specifics
+Due to the non-stationary nature of EEG signals, we implement a strict preprocessing pipeline:
+* **Filtering**: 0.5 Hz - 50 Hz Bandpass filter to remove drifts and power-line noise.
+* **Resampling**: Downsampling to 100 Hz to reduce computational cost.
+* **Normalization**: Channel-wise scaling (Z-score or Max).
+
+---
+
+### 💻 Installation
+
+This project manages dependencies using **[Pixi](https://prefix.dev/)**.
+
+**Install dependencies and environment:**
+    ```bash
+    pixi install
+    ```
+
+---
+
+### 🚀 Minimal run snippet
+Below is a minimal run sketch to train and evaluate on one dataset. Adjust paths and configs as needed.
+
+1) Configure `config.yaml` with dataset, training rates, and model hyperparameters.
+2) Run training (example):
+
+```bash
+pixi run python main.py
+```
+
+Outputs include TensorBoard logs (under `saved_models/.../runs/`), and best model weights.
+
+- If you want to use the AR model, change config.yaml: 
+
+```
+model_kind: AR_global
+```
+
+- If you want to use the MTGNN, change config.yaml:
+
+```
+model_kind: MTGNN
+```
+---
+
+### The dataset
+
+- If you want to change the dataset, change config.yaml:
+```
+dataset_name : solar # or electricity / traffic / exchange
+``` 
+
+In order to download the dataset used in the paper, you can clone this repo: [Repo data](https://github.com/laiguokun/multivariate-time-series-data) in the parent folder of multi-time-gnn. 
+
+#### Use of EEG
+
+You can find open EEG data at this link: [open eeg data](https://openneuro.org).
+
+If you want to use it, change the config.yaml:
+
+```
+dataset_name: eeg,
+path_eeg: {the path to your .bdf eeg}
+
+```
 
 
-### Things that we need to understand
-What is the channel in the convolution layer? Not clear at all for me.
-
-How to deal with the dimensions:
-- dimension of the time is changing
-- dimension of the channels is changing
-
-### TO DO:
-- [x] How to deal with the dimensions: dimension of the channels is changing? Reduction ? Or it increases
--> set inside config 
-- [x] implementation convolution skip connections
-- [x] dropout after time module
-- [x] regarder output module -> cf A.3 Experimental Setup
-- [x] Revoir les MLP layer -> doit etre selon les channels/features et non les capteurs
-- [x] Normalisation des dataset : scale par capteur ? 
-- [x] Layernorm : pourquoi autant de paramètres ? 
-- [x] Training : create real epoch -> Dataloader
-- [ ] Avoir les mêmes métriques : horizon 3, 6, 12, 24 
-- [x] créer train, val, test set pour logger
-
-Bonus:
-- [ ] Faire le training avec une sous partie du graphe 
-- [ ] Utiliser hydra 
-
-
-### Constant names
-
-N: number of sensors
-A: adjency matrix (represents the graph)
-C: embedding dimension
-
-
-### The normalisation strategy
-
-We have a multivariate time series data. We want to normalise it.
-
-We have three dataset: training, test, validation. 
-
-We are going to normalise the training dataset for each dimension like that: $\hat{y}_{train, i} = \frac{y_{train, i} - \overline{y}_{train, i}}{\sigma_{train, i}}$
-
-Where $\overline{y}_{train, i}$ is the mean of the training dataset in the i th dimension and $\sigma_{train, i}$ is its standard deviation 
-
-Then, during inference we will do for all the dimension i:
-
-$
-\hat{y}_{test, i} = \frac{y_{test, i} - \overline{y}_{train, i}}{\sigma_{train, i}}
-$
